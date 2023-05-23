@@ -31,6 +31,8 @@
 ! 2019-jun-18	Add output for best analog obs values, current forecast only.
 ! 2020-may-11	Minor, parameter name change.
 !
+! 2023-mar-25	Minor interface change to subroutine.
+!
 !------------------------------------------------------------------------------
 
 module anenmean__method
@@ -69,6 +71,7 @@ function anenmean_method (filter_method, obs, pred, vmiss, apar, fpar, &
 
   character fdate_str*24
   integer ndays, nhours
+  logical short_detect
 
 ! Unused result arrays from analog_ensemble.  See subroutine docs.
 
@@ -110,8 +113,8 @@ function anenmean_method (filter_method, obs, pred, vmiss, apar, fpar, &
 ! Apply Analog Ensemble filter.
 
   call analog_ensemble (obs, pred, pred_weights, vmiss, apar2, fpar2, isite, &
-    site_id, diag, anenmean_result, Ianalog, analog_in_an)
-					! last three are outputs
+    site_id, diag, anenmean_result, Ianalog, analog_in_an, short_detect)
+					! last four are outputs
 
 ! Also return best analogs for the current forecast cycle only.
 

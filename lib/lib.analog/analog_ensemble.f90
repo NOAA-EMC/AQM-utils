@@ -56,6 +56,10 @@
 !
 ! 2022-may-26	Selectively shorten training period for recent high obs values.
 !
+! 2023-mar-25	Modify number of analogs when short training period is selected.
+!
+! * Remember to update the date in the module_id below.
+!
 ! *** To do:
 ! *** After initial proving, convert reallocates to static arrays,
 !     for efficiency.
@@ -89,8 +93,11 @@ module analog__ensemble		! standard visibility
     real(dp)  bias_thresh_low	  ! bias exclusion thresholds for analogs
     real(dp)  bias_thresh_high
     character analog_mean*18	  ! selected analog mean formula, reserved names
+
     real(dp)  short_train_thresh  ! obs threshold to shorten training period
     integer   short_train_ndays   ! length of shortened training period
+    integer   num_analogs_short	  ! Number of best analogs if short train. per.
+    integer   min_num_analogs_short  ! Minimum num. analogs if short train. per.
 
   end type apar_type
 
@@ -101,7 +108,7 @@ contains
 !-----------------------------------------------------------
 
 subroutine analog_ensemble (obs, pred, pred_weights, vmiss, apar, fpar, &
-    isite, site_id, diag, ensan, Ianalog, analog_in_an)
+    isite, site_id, diag, ensan, Ianalog, analog_in_an, short_detect)
 
   use config, only : dp
   use find__analog
@@ -109,6 +116,9 @@ subroutine analog_ensemble (obs, pred, pred_weights, vmiss, apar, fpar, &
   use kf__luca
   use short__training_period
   implicit none
+
+  character(*), parameter :: &
+    module_id = 'analog_ensemble.f90 version 2023-mar-25'
 
   real(dp),        intent(in ) :: obs(:,:)		! DH  - target var only
   real(dp),        intent(in ) :: pred(:,:,:)		! DHV - forecast vars
@@ -124,6 +134,7 @@ subroutine analog_ensemble (obs, pred, pred_weights, vmiss, apar, fpar, &
   							!   actually is AnEnMean
   integer,         intent(out) :: Ianalog(:,:,:)	! DHA - found indicies
   real(dp),        intent(out) :: analog_in_an(:,:,:)	! DHA - found analogs
+  logical,         intent(out) :: short_detect		! signal short tr. per.
 
 ! Local variables.
 
@@ -134,9 +145,10 @@ subroutine analog_ensemble (obs, pred, pred_weights, vmiss, apar, fpar, &
   integer iday_obs_source
   integer winLower, winUpper, nanalogs
   integer num_available, num_selected, ct
+  integer num_analogs_select, min_num_analogs_select
   integer nan_count, count_missing
 
-  real(dp) mean_ens, mean_obs, bias
+  real(dp) max_obs, mean_ens, mean_obs, bias
 
   type(fpar_type) fpar2			! second copy for local modification
 
@@ -159,6 +171,9 @@ subroutine analog_ensemble (obs, pred, pred_weights, vmiss, apar, fpar, &
 
   if (diag >= 5) print '(a,i5,a)', ' *** analog_ensemble, site', isite, &
                        ': Start.'
+
+  if (diag >= 2 .and. isite == 1) &
+    print '(4x,3a,i0)', 'Module ID = ', module_id, ', isite = ', isite
 
   nday  = size (pred, 1)		! get array dimensions
   nhour = size (pred, 2)		! first two must match obs
@@ -188,7 +203,7 @@ subroutine analog_ensemble (obs, pred, pred_weights, vmiss, apar, fpar, &
   Ianalog(:,:,:)      = 0
 
 !---------------------------------------------------------------
-! Main nested loop over each forcast day, and forecast hour.
+! Main nested loop over each forecast day, and forecast hour.
 !---------------------------------------------------------------
 
 day_loop: &
@@ -216,7 +231,30 @@ day_loop: &
 ! high obs values are detected.
 
     call short_training_period (obs2, vmiss, d, apar%short_train_thresh, &
-       apar%short_train_ndays)
+      apar%short_train_ndays, short_detect, max_obs)
+
+    if (short_detect) then
+      if (diag >= 3 .and. d == apar%start_stat) &
+        print '(4x,a,i6,f9.2)', 'Short training period, isite =', isite, &
+          ', recent max obs =', max_obs
+    end if
+
+! Short training period modifies some other analog filter controls.
+! In current version, these mods uniformly affect ALL FORECAST HOURS
+! at the current site.
+
+    if (short_detect) then			! short training period
+      num_analogs_select     = apar%num_analogs_short
+      min_num_analogs_select = apar%min_num_analogs_short
+
+    else					! normal training period
+      num_analogs_select     = apar%num_analogs
+      min_num_analogs_select = apar%min_num_analogs
+    end if
+
+!-----------------------------------------------------
+! Main loop over each forecast hour.
+!-----------------------------------------------------
 
 hour_loop: &
     do h = 1, apar%forecast_last_hour	! only loop over forecast hours needed
@@ -336,7 +374,7 @@ bias_threshold_filter: &
 
       isequence = (/ (i, i = 1, nanalogs) /)	! make consecutive indices
 
-! If selected, ignore missing analogs such that we have apar%num_analogs
+! If selected, ignore missing analogs such that we have num_analogs_select
 ! analogs, when possible.
 
       if (apar%skipMissingAnalogs == 1) then
@@ -351,7 +389,7 @@ bias_threshold_filter: &
         Ian = pack (isequence, mask2)		! indices of non-missing analogs
 
         num_available = size (Ian)
-        num_selected = min (num_available, apar%num_analogs)
+        num_selected = min (num_available, num_analogs_select)
 					! limit to requested number of analogs
 
         i2 = num_available - num_selected + 1		! reduce index array
@@ -456,7 +494,7 @@ bias_threshold_filter: &
 !!    %if (ct >= 3 && pred(d, h, par%fvar, e) <= 7) %  hybrid AN-ANKF, v2
 
 enough_analogs: &
-      if (ct >= apar%min_num_analogs) then
+      if (ct >= min_num_analogs_select) then
 
         bias = mean_obs - mean_ens
         ilast = size (predtemp)
@@ -483,8 +521,8 @@ enough_analogs: &
 !!        %analog_in_an(d, h, 1:ct) = obstemp(Ian);  ! Save the analogs used
 !!						     ! for AN (until 9 Jan 12)
 
-        a1 = apar%num_analogs - ct + 1		! also return the analogs used
-        a2 = apar%num_analogs
+        a1 = num_analogs_select - ct + 1	! also return the analogs used
+        a2 = num_analogs_select
         analog_in_an(d, h, a1:a2) = obstemp(Ian)
 
 ! Otherwise default to prediction.

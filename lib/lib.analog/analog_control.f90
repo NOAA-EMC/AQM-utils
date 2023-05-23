@@ -83,6 +83,10 @@
 ! 2020-jun-03	Bug fix for unallocated predictor weights array.
 !		Fix minor display bug.
 !
+! 2022-dec-13	Minor.  Add input/output diagnostics.
+!
+! Remember to update the module ID below.
+!
 ! Notes:
 !
 ! Advanced Fortran features in use:
@@ -111,6 +115,9 @@ subroutine analog_control (filter_method, pred, obs, vmiss, target_var, &
   use kf__luca,          only : kpar_type
   use weight__control
   implicit none
+
+  character(*), parameter :: &
+    module_id = 'analog_control.f90 version 2022-dec-13'
 
 ! Input arguments.
 
@@ -166,10 +173,10 @@ subroutine analog_control (filter_method, pred, obs, vmiss, target_var, &
 ! Local variables.
 !-------------------------------------------------
 
-  character fdate_str*24, fmt1*60, fmt2*60, vtype*5
+  character fdate_str*24, fmt1*60, fmt2*60, fmt3*60, vtype*11
   character(len(analog_vars)) vname
 
-  integer j, di, hi, isite, vi, fvar, iobs
+  integer i, j, di, hi, isite, vi, fvar, iobs
   integer ndays, nhours, nvars, nsites, nbest
   integer ndays_show, nhours_show
   integer nvalid, nmissing
@@ -178,6 +185,8 @@ subroutine analog_control (filter_method, pred, obs, vmiss, target_var, &
 
   real(dp), allocatable :: pred_weights2(:,:)	! writeable copy (vars, sites)
   real(dp), allocatable :: vdata(:,:,:)		! for diagnostics only (DHS)
+  real(dp), allocatable :: vdata2(:,:)		! diag (HS)
+  real(dp), allocatable :: bias(:,:)		! diag (HS)
 
   integer, parameter :: samp(4) = (/ 1, 2, 3, 12 /)   ! hours for data samples
 
@@ -186,6 +195,7 @@ subroutine analog_control (filter_method, pred, obs, vmiss, target_var, &
 !-------------------------------------------------
 
   print *, 'analog_control:  Start.'
+  if (diag >= 2) print *, '  Module ID = ' // module_id
 
   j = site_lats(1) + site_lons(1)	! temporary, suppress compiler warnings
 
@@ -381,14 +391,68 @@ site_loop: &
 
   corrected(:,:) = filter_result_all(ndays, :, :)	! HS <-- DHS
 
-! Display sample output data.
+! If selected, display sample output data.
 
   if ( (diag >= 2) .and. (.not. wpar%gen_weights) ) then
     nhours_show = min (nhours, 8)
     print *
-    print *, 'Samples of bias corrected forecast values:'
+    print *, 'Samples of bias corrected forecast site values:'
     print *, trim (target_var) // ':'
     print '(i6, 5f12.4)', (hi, corrected(hi, 1:5), hi = 1, nhours_show)
+  end if
+
+!---------------------------------------------------------------------------
+! If selected, print input/output summary.
+!---------------------------------------------------------------------------
+
+  if (diag >= 2) then
+
+! Independent bias calculation, for diagnostic only.
+
+    allocate (bias (nhours, nsites))
+
+    where ( (uncorrected(:,:) /= vmiss) .and. (corrected(:,:) /= vmiss) )
+      bias = corrected - uncorrected
+    elsewhere
+      bias = vmiss
+    end where
+
+! Print summary table for uncorrected, corrected, and bias.
+
+    print *
+    print *, 'Analog input/output site summary for current forecast:'
+    print *, '             Variable      Min data      Max data  No. valid' &
+      // '    No. missing'
+
+    do i = 1, 3
+      if (i == 1) then
+        vtype  = 'Uncorrected'
+        vdata2 = uncorrected(:,:)
+      else if (i == 2) then
+        vtype  = 'Corrected'
+        vdata2 = corrected(:,:)
+      else
+        vtype  = 'Bias'
+        vdata2 = bias(:,:)
+      end if
+
+      nvalid       = count (vdata2(:,:) /= vmiss)
+      nmissing     = size (vdata2) - nvalid
+      percent_miss = (nmissing * 100.0_dp) / size (vdata2)
+
+      if (nvalid == 0) then
+        vmin = vmiss			! fix min and max display
+        vmax = vmiss			! if all missing
+      else
+        vmin = minval (vdata2(:,:), (vdata2(:,:) /= vmiss))
+        vmax = maxval (vdata2(:,:), (vdata2(:,:) /= vmiss))
+      end if
+
+      fmt3 = "(a12, a10, 2f14.7, i11, i8, ' (', f0.1, '%)')"
+      print fmt3, trim (vtype), trim (target_var), vmin, vmax, nvalid, &
+        nmissing, percent_miss
+    end do
+
     print *
   end if
 

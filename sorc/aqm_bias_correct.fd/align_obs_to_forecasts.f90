@@ -18,6 +18,13 @@
 ! 2020-apr-17	Minor.  Remove invalid missing value count in diagnostic.
 ! 2020-may-03	Comment fix only.  Change 48-hour forecasts to N-hour.
 !
+! 2023-apr-05	New time alignment standard, hourly forward averaged
+!		  convention, for all obs input sources.
+!		Remove one-hour time adjustment from 2015-jun-13.
+!		See time alignment notes in read_obs_series_bufr.f90.
+!
+! * Remember to update the date in the module_id below.
+!
 ! Primary inputs:
 !
 ! * Obs straight hourly time series for bias correction target variable.
@@ -32,24 +39,16 @@
 ! Time alignment of obs and model data:
 !
 ! Obs input time series are assumed to always start on hour 00
-! of some starting date.
+! of some starting date.  Obs are assumed to be HOURLY FORWARD
+! AVERAGED with respect to each time label.
 !
 ! Caller's model arrays are assumed to start on some arbitrary
 ! hour, 00 to 23, of the SAME starting date as the obs data.
 ! E.g. 06Z or 12Z.  This hour is specified in the cycle_time
 ! calling argument.
 !
-! 2015-jun-13:  Quick fix, obs are backward averaged, but model
-! variables are forward averaged per hour, with respect to their
-! internal hourly time labels (TFLAG, etc).
-!
-! Therefore, align each obs HOUR+1 with model HOUR.  Ref. bias
-! correction mailing list:
-!
-! * "Time dimension in model files", messages 2015-mar-16
-! * "Bias correction update", message 2015-mar-31
-!
-! Output data from this routine are alligned on these assumptions.
+! Obs output data from this routine are aligned on these
+! assumptions.
 !
 ! Notes:
 !
@@ -73,6 +72,9 @@ subroutine align_obs_to_forecasts (obs_in, cycle_time, ndays, nhours, &
 
    use config, only : dp
    implicit none
+
+   character(*), parameter :: &
+      module_id = 'align_obs_to_forecasts.f90 version 2023-apr-05'
 
 ! Input arguments.
 
@@ -133,7 +135,8 @@ subroutine align_obs_to_forecasts (obs_in, cycle_time, ndays, nhours, &
 !-------------------------------------------------
 
    if (diag >= 1) print *
-   if (diag >= 1) print '(a)',  'align_obs_to_forecasts: Start.'
+   if (diag >= 1) print '(a)', 'align_obs_to_forecasts: Start.'
+   if (diag >= 2) print '(a)', '  Module ID = ' // module_id
 
    nsites_obs_in = size (obs_ids)		! get dimensions
    nsites_model  = size (site_ids)
@@ -212,11 +215,7 @@ site_loop: &
       do iday = 1, ndays		! for each cycle starting date...
          ti_obs_hour0 = (iday * 24) - 23	! obs hour 0 of start date
 
-! Quick fix for obs time alignment, 2015-jun-13.  See header comments.
-! Add 1 extra hour to align each obs HOUR+1 with model HOUR.
-
-!!       ti1 = ti_obs_hour0 + cycle_time	! forecast start hour, this date
-         ti1 = ti_obs_hour0 + cycle_time + 1	! HOUR+1 obs alignment
+         ti1 = ti_obs_hour0 + cycle_time	! forecast start hour, this date
 
          ti2 = ti1 + nhours - 1			! last hour of forecast cycle
          ti2 = min (ti2, ntimes_in)		! limit to available obs

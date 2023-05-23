@@ -1,0 +1,34 @@
+#-----------------------------------------------------------------------------
+#
+# Environment setup script for convert_airnow_csv.f90.
+#
+# 2023-feb-05	Version for Intel 2022.3.0 on Hera.
+#
+# This C shell script sets up environment variables used by
+# generic make files and executables.  This supports make files
+# that are portable between compilers and platforms.
+#
+# This script must be source'd, not executed, to affect the
+# current shell.
+#
+#-----------------------------------------------------------------------------
+
+module purge
+module load intel/2022.3.0		# Hera
+module load netcdf			# system default version
+module list
+
+setenv	F90_CMD		ifort
+
+setenv	LIB_NETCDF	"-I$NETCDF/include -L$NETCDF/lib -lnetcdff"
+setenv	LIB_F90		lib_f90			# local fortran library
+
+set	ff1 = '-g -heap-arrays -assume byterecl -assume noold_maxminloc'
+set	ff2 = '-traceback -warn all,noexternal -warn errors'
+set	ff3 = '-fstack-security-check -fpe-all=0'
+set	ff4 = '-check all -no-wrap-margin'
+
+setenv	F90_FLAGS	"$ff1 $ff2 $ff3 $ff4"
+setenv	F90_CLEANUP	'*.o *.mod *__genmod.f90'	# for rm statement
+
+unset	ff1 ff2 ff3 ff4

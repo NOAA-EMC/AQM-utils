@@ -20,6 +20,9 @@
 !
 ! 2020-oct-30	Restrict BUFR module access to only actual symbols in use.
 !
+! 2023-apr-04	Fix site ID strings to exactly nine digits, which is the
+!		  EPA/Airnow standard for BUFR files.
+!
 ! Notes:
 !
 ! Primary inputs are a BUFR file name, and the requested BUFR
@@ -40,13 +43,14 @@
 ! This reader assembles the data into an appropriate array
 ! structure, with hours 0-23 in normal ascending order.
 !
-! The site ID's stored in the current version of AIRNow BUFR
-! files are 9-digit EPA site ID's, not 8-digit MOS2000 site ID's.
+! The site ID's stored in the current version of AirNow BUFR
+! files are standard 9-digit EPA site ID's, not 8-digit MOS2000
+! site ID's.  The new 12-digit EPA site ID's are not supported
+! in the current BUFR format.
 !
-! Site ID's are returned as decimal coded character strings, with
-! leading zeros preserved.  Leading zeros are added to completely
-! fill the string length of the caller's site_id output argument.
-! This length is set by the caller, not by this routine.
+! Site ID's are returned as decimal coded character strings,
+! left justified.  Leading zeros are added to pad all site ID's
+! to exactly nine digits.
 !
 ! This version does NOT perform any units conversion on input
 ! data values.
@@ -127,6 +131,9 @@ subroutine read_bufr_var (infile, varname, typo_expect, tphr_expect, &
    							 !   or fail (stdlit)
 ! Local program parameters.
 
+   character(*), parameter :: fmt_id = '(i9.9)'   ! standard 9-digit site ID's
+   integer,      parameter :: len_id = 9	  ! BUFR site ID string length
+
    integer, parameter :: ibfin = 94	! BUFR file input unit no., temporary
 					! per WCOSS coding guidelines
 
@@ -137,16 +144,16 @@ subroutine read_bufr_var (infile, varname, typo_expect, tphr_expect, &
 
 ! Local variables.
 
-   character subset*8, fmt_id*20, fmt1*50
+   character(len_id) id_str
+   character subset*8, fmt1*50
    character qc_str*12, val_str*16
-   character(len(site_ids)) id_str
 
    character date_codes*20, item_codes*40	! code lists for ufbint
    character(12) required_fields(10)		! must set dims for required
 						! fields, in code below
    integer j, si, hour, ihour, ignore
    integer message_num, subset_num
-   integer idate, iret, len_id, ncodes
+   integer idate, iret, ncodes
    integer nsubsets, nsubsets_total
    integer nmessages, ov_count, nmissing
    integer ysave, msave, dsave
@@ -189,13 +196,6 @@ subroutine read_bufr_var (infile, varname, typo_expect, tphr_expect, &
    si = 0				! init "previously used" site index
    					! needed to suppress possible compiler
                                         ! warning, not needed for lookup algo
-
-! Construct fixed width format spec for adding leading zeros to site ID's.
-! Format In.n will create asterisks on overflow, and catch invalid ID's.
-
-   len_id = len (site_ids)		! string length of caller's output arg
-
-   write (fmt_id, '(a,i0,a,i0,a)') '(i', len_id, '.', len_id, ')'   ! "(i9.9)"
 
 ! Open BUFR input file for read access.  Open with fortran, any mode.
 ! Bufrlib will use its own direct access on the open unit number.
@@ -707,19 +707,21 @@ start_of_message: &
    idata(:,:) = tdata(:,1:nsites)	! copy data values (hours, sites)
 
 ! Site ID's are encoded as double precision numbers.
-! Convert to strings, with leading zeros preserved.
+! Convert to fixed length strings using fixed width format spec.
+! Include leading zeros to pad to the EPA/AirNow standard site ID
+! length of 9 digits.  Format In.n will create asterisks on overflow,
+! and catch invalid ID's.
 
-! Total number of digits is determined by the character length of
-! the caller's site_id argument.  If the number of non-zero digits
-! exceeds the available string size, then all asterisks will be
-! returned.  This is not currently detected as an error condition.
+! If the number of non-zero digits exceeds the available string size,
+! then all asterisks will be returned.  This is not currently
+! detected as an error condition.
 
    if (diag >= 5) print *, ' Convert site ID''s from doubles to strings.'
    if (diag >= 6) print *, '   Format string = ' // trim (fmt_id)
 
-   do si = 1, nsites
-      write (site_ids(si), fmt_id) int (tids(si))	! convert to string;
-   end do						! preserve leading zeros
+   do si = 1, nsites				     ! convert real to string;
+      write (site_ids(si), fmt_id) int (tids(si))    ! preserve leading zeros;
+   end do					     ! left justify
 
 ! Check for string overflow.  Currently, only a warning is printed.
 

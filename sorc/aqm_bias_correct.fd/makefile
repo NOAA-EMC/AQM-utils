@@ -46,6 +46,9 @@
 # 2022-may-31	Main program name change to aqm_bias_correct.f90.
 # 2022-jun-02	Split write_corrected_netcdf into two versions.
 #
+# 2023-mar-27	Add print_omp_info.f90 with conditional $F90_OMP_STUBS.
+# 2023-apr-04	Add read_obs_series_netcdf.f90, etc. for AirNow Netcdf support.
+#
 # This make file uses a single large compile command, rather
 # than incremental compiles.  Environment variables are used to
 # keep the make file generic for different compilers.
@@ -72,6 +75,14 @@ Plib =		$(LIB_PROBABILITY)
 Libraries =	$(LIB_BUFR) $(LIB_NETCDF)
 Link.f90 =	$(F90_CMD) $(F90_FLAGS) $(F03_ALLOCATE)
 
+# OpenMP support for gfortran serial mode.  Needed to add the prefix.
+
+ifdef F90_OMP_STUBS
+   OMP_STUBS = $(Lib)/$(F90_OMP_STUBS)
+else
+   OMP_STUBS =
+endif
+
 # Lib = General fortran support library.
 
 Lib1 =		$(Lib)/config.f90		$(Lib)/stdlit.f90 \
@@ -82,7 +93,8 @@ Lib2 =		$(Lib)/binomial_coefficient.f90	$(Lib)/date_utils.f90 \
 		$(Lib)/find_runs.f90		$(Lib)/get_free_unit.f90 \
 		$(Lib)/get_param_module.f90	$(Lib)/message_nolog.f90 \
 		$(Lib)/multisets.f90		$(Lib)/netcdf_sup.f90 \
-		$(Lib)/netwrite3.no-udunits.f90	$(Lib)/read_line.f90 \
+		$(Lib)/netwrite3.no-udunits.f90	$(OMP_STUBS) \
+		$(Lib)/print_omp_info.f90	$(Lib)/read_line.f90 \
 		$(Lib)/read_netcdf_var.f90	$(Lib)/shell-sort.f90 \
 		$(Lib)/std_dev.f90		$(Lib)/std_dev_grid.f90
 
@@ -90,10 +102,9 @@ Subs.lib =	$(Lib1) $(Lib2)
 
 # Blib = Shared BC project support library.
 
-Subs.blib =	$(Blib)/bufrlib_interface.f90 \
-		$(Blib)/gridlocation.f90	$(Blib)/print_library_info.f90 \
-		$(Blib)/read_bufr_var.f90	$(Blib)/read_grid_coords.f90 \
-		$(Blib)/read_gridded_aqm.f90 \
+Subs.blib =	$(Blib)/bufrlib_interface.f90	$(Blib)/gridlocation.f90 \
+		$(Blib)/print_library_info.f90	$(Blib)/read_bufr_var.f90 \
+		$(Blib)/read_grid_coords.f90	$(Blib)/read_gridded_aqm.f90 \
 		$(Blib)/read_gridded_hourly.f90 \
 		$(Blib)/read_gridded_vars.f90	$(Blib)/read_table_lines.f90 \
 		$(Blib)/shell-sort.descending.f90
@@ -134,16 +145,17 @@ Subs.plib =	$(Opt_Interp) $(Probability1) $(Probability2)
 # Local support routines in main program directory.
 
 Local1 =	align_obs_to_forecasts.f90	blackout_obs_data.f90 \
-		compute_wind.f90		get_command_args.main.f90 \
-		get_window_offsets.f90		grid_distances.f90 \
-		qc_single_site.f90		read_blocking_list.f90 \
-		site_blocking.f90
+		compute_wind.f90		convert_obs_units.f90 \
+		get_command_args.main.f90	get_window_offsets.f90 \
+		grid_distances.f90		qc_single_site.f90 \
+		read_blocking_list.f90		site_blocking.f90
 
 Local2 =	print_interp_summary.f90	read_var_table.f90 \
 		read_config_file_main.f90	read_interp_forecasts.f90 \
-		read_obs_series.f90		read_obs_qc.f90 \
-		read_predictor_weights.f90	read_exception_list.f90 \
-     		spread_bias.f90 \
+		read_obs_series_bufr.f90	read_obs_file_netcdf.f90 \
+		read_obs_series_netcdf.f90	read_obs_series.f90 \
+		read_obs_qc.f90			read_predictor_weights.f90 \
+		read_exception_list.f90		spread_bias.f90 \
 		write_corrected_netcdf_rrfs.f90	write_corrected_netcdf_v1.f90 \
 		write_predictor_weights.f90	write_site_list.f90 \
 		write_site_result_files.f90	write_test_day_files.f90 \

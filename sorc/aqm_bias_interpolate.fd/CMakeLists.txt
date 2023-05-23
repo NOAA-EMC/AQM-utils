@@ -1,6 +1,6 @@
 set(IOAPI_OFFSET_64 YES)
 
-set(LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../lib")
+set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
 set(ALIB "${LIB_DIR}/lib.analog")
 set(BLIB "${LIB_DIR}/lib.bias")
 set(FLIB "${LIB_DIR}/lib.f90")
@@ -41,7 +41,7 @@ list(APPEND SRC_LOCAL
     get_command_args.interp.f90
     interpolate.f90
     read_config_file_interp.f90
-    read_station_file.f90
+    read_site_list.f90
     write_interp_netcdf.f90
     )
 
@@ -76,6 +76,7 @@ add_executable(${exe_name} ${exe_src})
 
 target_link_libraries(
   ${lib_name}
+  PUBLIC
   NetCDF::NetCDF_Fortran
 )
 

@@ -8,6 +8,8 @@
 ! 2021-apr-27	Original version.  By Dave Allured.
 !		Adapted from read_exception_list.f90 version 2016-feb-09.
 !
+! 2023-apr-09	Minor update for 12-character site ID's.
+!
 ! Summary:
 !
 ! * Read site blocking list file as free format text.
@@ -214,7 +216,7 @@ count_loop: &
 ! Print header for blocking list summary in console report.
 
    if (diag >= 2) print *
-   if (diag >= 2) print *, '   Site ID  S/D valid  Latitude  Longitude' &
+   if (diag >= 2) print *, '   Site ID     S/D valid  Latitude  Longitude' &
       // '  Command   Start date    End date'
 
    fmt1 ='(3x, a, 4x, a, 2x, a, 1x, 2f11.4, 2x, a7, 2(i7, 2i3))'

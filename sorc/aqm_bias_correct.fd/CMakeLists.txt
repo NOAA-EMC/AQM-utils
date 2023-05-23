@@ -1,6 +1,6 @@
 set(IOAPI_OFFSET_64 YES)
 
-set(LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../lib")
+set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
 set(ALIB "${LIB_DIR}/lib.analog")
 set(BLIB "${LIB_DIR}/lib.bias")
 set(FLIB "${LIB_DIR}/lib.f90")
@@ -26,6 +26,7 @@ list(APPEND SRC_FLIB2
     ${FLIB}/multisets.f90
     ${FLIB}/netcdf_sup.f90
     ${FLIB}/netwrite3.no-udunits.f90 
+    ${FLIB}/print_omp_info.f90
     ${FLIB}/read_line.f90
     ${FLIB}/read_netcdf_var.f90
     ${FLIB}/shell-sort.f90
@@ -99,6 +100,7 @@ list(APPEND SRC_LOCAL1
     align_obs_to_forecasts.f90
     blackout_obs_data.f90
     compute_wind.f90
+    convert_obs_units.f90
     get_command_args.main.f90
     get_window_offsets.f90
     grid_distances.f90
@@ -112,8 +114,11 @@ list(APPEND SRC_LOCAL2
     read_var_table.f90
     read_config_file_main.f90
     read_interp_forecasts.f90
-    read_obs_series.f90
+    read_obs_file_netcdf.f90
     read_obs_qc.f90
+    read_obs_series.f90
+    read_obs_series_bufr.f90
+    read_obs_series_netcdf.f90
     read_predictor_weights.f90
     read_exception_list.f90
     spread_bias.f90
@@ -150,12 +155,12 @@ set(exe_src aqm_bias_correct.f90)
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "^(Intel)$")
   set(CMAKE_Fortran_FLAGS
-      "-g -traceback -fp-model source -free -convert big_endian")
+      "-g -traceback -fp-model source -free -convert big_endian -qopenmp")
   set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
   set(CMAKE_Fortran_FLAGS_DEBUG "-O0")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
   set(CMAKE_Fortran_FLAGS
-      "-g -fbacktrace -ffree-form -ffree-line-length-none -fconvert=big-endian")
+      "-g -fbacktrace -ffree-form -ffree-line-length-none -fconvert=big-endian -fopenmp")
   set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
   set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -ggdb -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans -ffpe-trap=invalid,zero,overflow -fbounds-check")
   if(CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL 10)
@@ -166,11 +171,20 @@ endif()
 add_library(${lib_name} STATIC ${lib_src})
 add_executable(${exe_name} ${exe_src})
 
+set(mod_dir "${CMAKE_CURRENT_BINARY_DIR}/mod")
+set_target_properties(${lib_name} PROPERTIES Fortran_MODULE_DIRECTORY ${mod_dir})
+target_include_directories(${lib_name} INTERFACE ${mod_dir})
+
 target_link_libraries(
   ${lib_name}
+  PUBLIC
   NetCDF::NetCDF_Fortran
   bufr::bufr_4
 )
+
+if(OpenMP_Fortran_FOUND)
+  target_link_libraries(${exe_name} PUBLIC OpenMP::OpenMP_Fortran)
+endif()
 
 target_link_libraries(${exe_name} PRIVATE ${lib_name})
 

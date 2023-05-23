@@ -16,7 +16,12 @@
 !		Break out PM2.5 and ozone routines into separate include files.
 !		Add subroutine dispatcher, based on the var name.
 !
-! 2022-may-27	Add config parameter for obs maximum valid input threshold.
+! 2022-may-27	Add maximum value limit for PM2.5 input.
+!
+! 2023-apr-03	Add var names for AirNow CSV/Netcdf to embedded var table.
+! 2023-apr-06	Add diagnostic to display values changed.
+! 2023-apr-08	Add lower limit for AirNow negative input values.
+!		Add low/high input limits for ozone as well as PM2.5.
 !
 ! Primary input:  Raw AIRNow hourly time series of pollutant concentrations.
 ! for single site.  Complete days, start on hour 0, end on hour 23.
@@ -49,30 +54,59 @@ contains
 ! Main routine, dispatches for current obs species.
 !-------------------------------------------------------------
 
-subroutine qc_single_site (varname, y, obs_max_input, vmiss, diag, site_id)
+subroutine qc_single_site (varname, y, obs_min_input, obs_max_input, vmiss, &
+      diag, site_id)
+
    use config, only : dp
    implicit none
 
    character(*), intent (in   ) :: varname	 ! name of current obs species
    real(dp),     intent (inout) :: y(:)		 ! hourly time series for 1 site
+   real(dp),     intent (in   ) :: obs_min_input ! obs min valid input threshold
    real(dp),     intent (in   ) :: obs_max_input ! obs max valid input threshold
    real(dp),     intent (in   ) :: vmiss	 ! missing value in time series
    integer,      intent (in   ) :: diag		 ! diag verbosity level, 0-N
    character(*), intent (in   ) :: site_id	 ! site ID for diagnostic
 
+! Local variables.
+
+   integer ti, ndiff
+   real(dp), allocatable :: ycopy(:)
+
+! Save a copy of input data, for diagnostic.
+
+   ycopy = y(:)
+
 ! Dispatch to specific QC routine for the current obs species.
 
-   if (varname == 'COPO') then
-      call qc_site_ozone (y, vmiss, diag, site_id)
+   if (any (varname == (/ 'OZONE', 'COPO ' /) )) then
+      call qc_site_ozone (y, obs_min_input, obs_max_input, vmiss, diag, site_id)
 
-   else if (varname == 'COPOPM') then
-      call qc_site_pm25 (y, obs_max_input, vmiss, diag, site_id)
+   else if (any (varname == (/ 'PM25  ', 'COPOPM' /) )) then
+      call qc_site_pm25 (y, obs_min_input, obs_max_input, vmiss, diag, site_id)
 
    else
       print *, '*** qc_single_site: Requested obs variable name is unknown.' &
                     // ' Abort.'
       print *, '*** Requested var name = "' // trim (varname) // '"'
       call exit (1)
+   end if
+
+! Site diagnostics for changed values.
+
+   ndiff = count (y(:) /= ycopy(:))
+
+   if ( (diag >= 2) .and. (ndiff /= 0) ) then
+      print '(7x,2a,i5)', site_id, ':  Number of values changed = ', ndiff
+
+      if (diag >= 3) then
+         do ti = 1, size (y)
+            if (y(ti) /= ycopy(ti)) then
+               print '(7x,2a,i6,2g16.7)', site_id, ':  Changed:', &
+                  ti, ycopy(ti), y(ti)
+            end if
+         end do
+      end if
    end if
 
 end subroutine qc_single_site

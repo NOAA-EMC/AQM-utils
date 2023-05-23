@@ -1,0 +1,3 @@
+set INPATH = airnow/csv/YYYY/YYYYMMDD/HourlyAQObs_YYYYMMDDHH.dat
+set OUTPATH = out/test.YYYYMMDD.nc
+./convert_airnow_csv $INPATH $OUTPATH 20220801 20220801

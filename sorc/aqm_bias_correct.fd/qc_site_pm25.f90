@@ -16,7 +16,11 @@
 !		Break out the individual QC routine for PM2.5.
 !		No other code changes within the subroutine, at this time.
 !
-! 2022-may-27	Add config parameter for obs maximum valid input threshold.
+! 2022-may-27	Add maximum value input limit for PM2.5.
+!
+! 2023-mar-28	Bug fix for variable threshold.  Make result array allocatable.
+! 2023-apr-08	Add minimum value input limit, for AirNow negative values.
+!		Simplify the min/max limit code.  Remove confusing y500 array.
 !
 ! Primary input:  Raw AIRNow hourly time series of PM2.5 concentrations
 ! for single site.  Complete days, start on hour 0, end on hour 23.
@@ -27,11 +31,12 @@
 !
 !------------------------------------------------------------------------------
 
-subroutine qc_site_pm25 (y, obs_max_input, vmiss, diag, site_id)
+subroutine qc_site_pm25 (y, obs_min_input, obs_max_input, vmiss, diag, site_id)
    use config, only : dp
    implicit none
 
    real(dp),     intent (inout) :: y(:)		 ! hourly time series for 1 site
+   real(dp),     intent (in   ) :: obs_min_input ! obs min valid input threshold
    real(dp),     intent (in   ) :: obs_max_input ! obs max valid input threshold
    real(dp),     intent (in   ) :: vmiss	 ! missing value in time series
    integer,      intent (in   ) :: diag		 ! diag verbosity level, 0-N
@@ -43,18 +48,18 @@ subroutine qc_site_pm25 (y, obs_max_input, vmiss, diag, site_id)
 
 ! Local variables.
 
-   real(dp) y500(size(y))			! automatic arrays
-   real(dp) yis1(size(y))			! same size as input time series
-   real(dp) yis3(size(y))
+   real(dp) yis1(size(y))			! automatic arrays
+   real(dp) yis3(size(y))			! same size as input time series
    real(dp) yhis(size(y))
    real(dp) ycnt(size(y))
 
    real(dp) xar(1:24),yar(1:24)
-   real(dp) badflag, sthresh, ymean
+   real(dp) badflag, sthresh, ymean, ymin, ymax
 
-   integer result(1:500)
    integer i, i1, i2, j, k, inp, nc, ndays
    integer ibadflag, iymax, ithresh
+
+   integer, allocatable :: result(:)
 
 ! Initialize.
 
@@ -65,9 +70,8 @@ subroutine qc_site_pm25 (y, obs_max_input, vmiss, diag, site_id)
    nc = size (y)				! get length of time series
    ndays = nc / nhour				! number of whole days
 
-   y500(:)=badflag				! clear work arrays
-   yis1(:)=badflag				! to all missing
-   yis3(:)=badflag
+   yis1(:)=badflag				! clear work arrays
+   yis3(:)=badflag				! to all missing
    yhis(:)=badflag
    ycnt(:)=badflag
 
@@ -77,26 +81,20 @@ subroutine qc_site_pm25 (y, obs_max_input, vmiss, diag, site_id)
 !        end if
 !   enddo
 
-!-------------------------------------------------
-! Find all points over max valid (microg/m-3)
-!-------------------------------------------------
+!-----------------------------------------------------------
+! Remove all values outside of min/max limits (microg/m-3)
+!-----------------------------------------------------------
 
-   do i=1,nc
-     if (y(i) > obs_max_input) then	! originally was 500 ug/m^3 for PM2.5
-       y500(i)=y(i)
-     end if
-   enddo
+   if (diag >= 5) then
+      ymin = minval (y, (y(:) /= vmiss))
+      ymax = maxval (y, (y(:) /= vmiss))
 
-!-------------------------------------------
-! Thresh raw data with 500points
-!-------------------------------------------
+      print *, '   Input min, max before limits = ', ymin, ', ', ymax
+   end if
 
-   do i=1,nc
-     if (y500(i).gt.0.) then
-       y(i)=badflag
-     end if
-   enddo
-   if (diag>=5) print *,'ymax=',maxval(y)
+! The high limit originally was 500 ug/m^3 for PM2.5.
+
+   where ( (y(:) < obs_min_input) .or. (y(:) > obs_max_input) ) y(:) = vmiss
 
 !------------------------------------
 ! Find isolated hourly value
@@ -170,6 +168,9 @@ subroutine qc_site_pm25 (y, obs_max_input, vmiss, diag, site_id)
 
    iymax=int(maxval(y))
    if (diag>=5) print *,'iymax=',iymax
+
+   allocate (result(iymax+1))		! need 1 extra for histy subroutine
+
 ! For ymax below 200 use thresh=50
 ! For ymax above 200 use thresh=100
    if (iymax.le.200) then

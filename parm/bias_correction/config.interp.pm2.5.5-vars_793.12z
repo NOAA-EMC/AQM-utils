@@ -30,10 +30,13 @@
 *		Read U and V winds directly, rather than derived.
 * 2022-apr-19	Change from hard coded derivatives, to formula expressions.
 *
-* 2022-may-27	Version for online-CMAQ.  5 predictor vars for PM2.5.
+* 2022-may-27	Version for Online-CMAQ.  5 predictor vars for PM2.5.
 * 2022-jun-01	Switch to original grid coordinate file.
 *
-* 2022-jul-25   Version for AQMv7.
+* 2022-jul-25	Version for AQMv7.
+* 2022-dec-02	Switch from 73 to 72 forecast hours, for new Online-CMAQ.
+*
+* 2023-apr-09	AQMv7.  Change parameter to "site list" for consistency.
 *
 * Blank lines and asterisk in column 1 are comment lines.
 * Tables are free format, space delimited.
@@ -57,7 +60,7 @@
 *
 *--------------------------------------------------------------------------
 
-station file         = data/site-lists.interp/sites.valid.pm25.20220724.12z.list
+site list            = data/site-lists.interp/sites.valid.pm25.20230331.12z.list
 grid coordinate file = data/coords/aqm.t12z.chem_sfc.f000.nc
 interp file template = out/pm25/YYYY/forecasts.interp.YYYYMMDD.CCz.nc
 

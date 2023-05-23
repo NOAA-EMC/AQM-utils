@@ -8,6 +8,8 @@
 ! 2017-apr-11	Use new library routine find_runs.f90.
 !		Add test #3, remove constant values at same hour of day.
 !
+! 2023-apr-08	Add low/high limits for AirNow input values.
+!
 ! Primary input:  Raw AIRNow hourly time series of ozone concentrations
 ! for single site.  Complete days, start on hour 0, end on hour 23.
 !
@@ -17,28 +19,31 @@
 !
 !------------------------------------------------------------------------------
 
-subroutine qc_site_ozone (y, vmiss, diag, site_id)
+subroutine qc_site_ozone (y, obs_min_input, obs_max_input, vmiss, diag, site_id)
 
    use config, only : dp
    use find__runs
    implicit none
 
-   real(dp),     intent (inout) :: y(:)		! hourly time series for 1 site
-   real(dp),     intent (in   ) :: vmiss	! missing value in time series
-   integer,      intent (in   ) :: diag		! diag verbosity level, 0-N
-   character(*), intent (in   ) :: site_id	! site ID for diagnostic
+   real(dp),     intent (inout) :: y(:)		 ! hourly time series for 1 site
+   real(dp),     intent (in   ) :: obs_min_input ! obs min valid input threshold
+   real(dp),     intent (in   ) :: obs_max_input ! obs max valid input threshold
+   real(dp),     intent (in   ) :: vmiss	 ! missing value in time series
+   integer,      intent (in   ) :: diag		 ! diag verbosity level, 0-N
+   character(*), intent (in   ) :: site_id	 ! site ID for diagnostic
 
 ! Local variables.
 
    character fmt1*80
 
    integer ihr, ntimes, min_length
-   integer nrej_runs, nrej_hours, nrej_all
+   integer nrej_runs, nrej_hours, nrej_lower, nrej_upper, nrej_all
 
    real(dp) tolerance_rel
 
    logical is_missing(size(y)), mask_hours(size(y)), mask_all(size(y))
    logical, allocatable :: mask_runs(:), slice_mask(:)
+   logical, allocatable :: mask_lower(:), mask_upper(:)
 
 ! Initialize.
 
@@ -110,13 +115,23 @@ subroutine qc_site_ozone (y, vmiss, diag, site_id)
 !---------------------------------------------------------------------
 
 !---------------------------------------------------------------------
+! Apply min/max input limits.
+!
+! New filter, 2023 April 8, specifically for possible AirNow
+! negative input values.
+!---------------------------------------------------------------------
+
+   mask_lower = (y(:) < obs_min_input)
+   mask_upper = (y(:) > obs_max_input)
+
+!---------------------------------------------------------------------
 ! Final step.  Merge all filter masks, set reject values to missing.
 !---------------------------------------------------------------------
 
 ! Merge all reject values from all individual tests.
 ! True = reject, so combine with "or".
 
-   mask_all(:) = mask_runs .or. mask_hours
+   mask_all(:) = mask_runs .or. mask_hours .or. mask_lower .or. mask_upper
 
    where (mask_all(:)) y(:) = vmiss
 
@@ -125,6 +140,9 @@ subroutine qc_site_ozone (y, vmiss, diag, site_id)
    if (diag >= 3) then
       nrej_runs  = count (mask_runs(:)  .and. .not. is_missing(:))
       nrej_hours = count (mask_hours(:) .and. .not. is_missing(:))
+      nrej_lower = count (mask_lower(:) .and. .not. is_missing(:))
+      nrej_upper = count (mask_upper(:) .and. .not. is_missing(:))
+
       nrej_all   = count (mask_all(:)   .and. .not. is_missing(:))
 
       fmt1 = "('    Site ', a, ', count of ', a, i6)"
@@ -133,6 +151,11 @@ subroutine qc_site_ozone (y, vmiss, diag, site_id)
                          'rejected constant values in runs      =', nrej_runs
       if (nrej_hours /= 0) print fmt1, site_id, &
                          'rejected constant values in same hour =', nrej_hours
+      if (nrej_lower /= 0) print fmt1, site_id, &
+                         'rejected values below lower limit     =', nrej_lower
+      if (nrej_upper /= 0) print fmt1, site_id, &
+                         'rejected values above upper limit     =', nrej_upper
+
       if (nrej_all   /= 0) print fmt1, site_id, &
                          'combined rejected values for site     =', nrej_all
    end if

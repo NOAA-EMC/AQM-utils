@@ -16,6 +16,8 @@
 !		Improve diagnostics.
 ! 2016-feb-09	Require "none" for no exception file.
 !
+! 2023-apr-09	Minor update for 12-character site ID's.
+!
 ! Input file format:
 !
 ! Site list with coordinates and threshold values.
@@ -144,7 +146,7 @@ subroutine read_exception_list (filename, site_ids, vmiss, diag, thresh_low, &
 ! File open.  Begin exception list for log file.
 
    if (diag >= 2) print *
-   if (diag >= 2) print *, '        Site ID   Valid  Latitude  Longitude' &
+   if (diag >= 2) print *, '      Site ID      Valid   Latitude  Longitude' &
       // '  Low threshold  High threshold'
 
 ! Skip lines to end of header.
@@ -221,7 +223,7 @@ line_loop: &
 ! Print exception site line, for log file.
 
       if (diag >= 2) &
-         print '(i5, 2x, a, 2x, a, 2f11.4, f12.1, f15.1)', isite_list, &
+         print '(i5, 2x, a, 3x, a, 2f11.4, f12.1, f15.1)', isite_list, &
             excep_id, match_str, lat, lon, thresh_low_in, thresh_high_in
 
    end do line_loop

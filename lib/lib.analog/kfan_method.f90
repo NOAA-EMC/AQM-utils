@@ -29,6 +29,8 @@
 ! 2019-jun-18	Add output for best analog obs values, current forecast only.
 ! 2020-may-11	Minor, parameter name change.
 !
+! 2023-mar-25	Auto switch to AnEnMean, when short training period detected.
+!
 !------------------------------------------------------------------------------
 
 module kfan__method
@@ -70,6 +72,7 @@ function kfan_method (filter_method, obs, pred, vmiss, apar, fpar, kpar, &
 
   character fdate_str*24
   integer ndays, nhours
+  logical short_detect
 
   real(dp), allocatable :: anenmean_result(:,:)	  ! DH
   real(dp), allocatable :: analog_in_an(:,:,:)	  ! DHA, nearest analogs found
@@ -81,6 +84,10 @@ function kfan_method (filter_method, obs, pred, vmiss, apar, fpar, kpar, &
 ! Unused result array from kf_analog.  See subroutine docs.
 
   integer,  allocatable :: Ianalog(:,:,:)	! indices of found analogs
+
+!-----------------------------------------------------------
+! Initialize.
+!-----------------------------------------------------------
 
 ! Check requested filter method name.
 
@@ -105,7 +112,7 @@ function kfan_method (filter_method, obs, pred, vmiss, apar, fpar, kpar, &
   fpar2 = fpar
   kpar2 = kpar
 
-! Allocate result arrays for kf_analog.
+! Allocate result arrays for analog_ensemble.
 
   ndays  = size (pred, 1)		! number of forecast cycles in data
   					! training period is 1 to ndays-1
@@ -116,39 +123,54 @@ function kfan_method (filter_method, obs, pred, vmiss, apar, fpar, kpar, &
   allocate (ianalog(ndays, nhours, apar2%num_analogs))		! DHA
   allocate (analog_in_an(ndays, nhours, apar2%num_analogs))	! DHA
 
+!-----------------------------------------------------------
 ! KF/AN part 1.  Compute multiple analog forecasts.
+!-----------------------------------------------------------
 
   apar2%start_stat = 1			! make analogs for all available dates
 
   call analog_ensemble (obs, pred, pred_weights, vmiss, apar2, fpar2, isite, &
-    site_id, diag, anenmean_result, Ianalog, analog_in_an)
-						! last three are outputs
+    site_id, diag, anenmean_result, Ianalog, analog_in_an, short_detect)
+						! last four are outputs
 
 ! Also return best analogs for the current forecast cycle only.
 ! This is independent from KFAN step 2.
 
   best_analogs_obs(:,:) = analog_in_an(ndays,:,:)	! HA <-- DHA
 
-! KF/AN part 2.  Apply Kalman filter to AnEnMean result (analog ensemble mean).
+! Support dynamic short training period, skip Kalman filter when
+! short training period is active.
+! Return AnEnMean result rather than KFAN, for current site only.
 
+k_disable: &
+  if (short_detect) then
+    kfan_result = anenmean_result(:,:)			! (DH) <-- (DH)
+
+!------------------------------------------------------------------------------
+! KF/AN part 2.  Apply Kalman filter to AnEnMean result (analog ensemble mean).
+!------------------------------------------------------------------------------
+
+! Normal training period, use full KFAN..
 ! Convert 2-D inputs to 1-D.
 ! Dimensions must be transposed for kf_luca, to match Matlab.
 
-  obs_flat   = (/ transpose (obs) /)		! (1-D) <-- (HD) <-- (DH)
-  ensan_flat = (/ transpose (anenmean_result) /)
+  else
+    obs_flat   = (/ transpose (obs) /)		! (1-D) <-- (HD) <-- (DH)
+    ensan_flat = (/ transpose (anenmean_result) /)
 
-  kpar2%update = nhours				! array stride for KF/AN
+    kpar2%update = nhours			! array stride for KF/AN
 
-  call kf_luca (obs_flat, ensan_flat, vmiss, kpar2, diag, result_1d)
+    call kf_luca (obs_flat, ensan_flat, vmiss, kpar2, diag, result_1d)
 
-  kfan_result = transpose (reshape (result_1d, (/ nhours, ndays /) ))
+    kfan_result = transpose (reshape (result_1d, (/ nhours, ndays /) ))
 						! (DH) <-- (HD) <-- (1-D)
 
-  if (diag >= 4) then
-    print '(a,99(1x,i0))', '  kfan_result dims = ', shape (kfan_result)
-    print '(a,99(1x,i0))', '  kf_luca 1-D size = ', size (result_1d)
-    print '(a,99(1x,i0))', '  ndays, nhours    = ', ndays, nhours
-  end if
+    if (diag >= 4) then
+      print '(a,99(1x,i0))', '  kfan_result dims = ', shape (kfan_result)
+      print '(a,99(1x,i0))', '  kf_luca 1-D size = ', size (result_1d)
+      print '(a,99(1x,i0))', '  ndays, nhours    = ', ndays, nhours
+    end if
+  end if k_disable
 
   if (diag >= 4) then
     call fdate (fdate_str)

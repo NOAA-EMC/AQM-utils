@@ -1,6 +1,6 @@
 set(IOAPI_OFFSET_64 YES)
 
-set(LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../lib")
+set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
 set(BLIB "${LIB_DIR}/lib.bias")
 set(FLIB "${LIB_DIR}/lib.f90")
 
@@ -19,16 +19,13 @@ list(APPEND SRC_FLIB2
     ${FLIB}/get_free_unit.f90
     ${FLIB}/get_param_module.f90     
     ${FLIB}/message_nolog.f90
-    ${FLIB}/netwrite3.no-udunits.f90 
+    ${FLIB}/netwrite3.no-udunits.f90
+    ${FLIB}/next_time.f90
     ${FLIB}/read_line.f90)
-
-list(APPEND SRC_FLIB3
-    ${FLIB}/next_time.f90)
 
 list(APPEND lib_src
     ${SRC_FLIB1}
     ${SRC_FLIB2}
-    ${SRC_FLIB3}
     )
 
 set(exe_name aqm_post_maxi_bias_cor_grib2)
@@ -55,6 +52,7 @@ add_executable(${exe_name} ${exe_src})
 
 target_link_libraries(
   ${lib_name}
+  PUBLIC
   NetCDF::NetCDF_Fortran
   g2::g2_4
   w3emc::w3emc_4

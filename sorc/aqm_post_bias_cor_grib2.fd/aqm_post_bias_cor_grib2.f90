@@ -30,7 +30,7 @@
 
 ! added by JP  
       character  infile*200
-      character  varname*10,ymd*8,ch_cyc*2,chtmp*2
+      character  varname*10,ymd*8,ch_cyc*2,chtmp*3
       integer    diag, imax,jmax
       integer    icyc,iyear,imonth,iday,ihour,base_year,nt
       integer    nowdate,nowtime
@@ -214,13 +214,8 @@
 
 !-- set file unit
       ifilw=52
-      if (nt .le. 9 ) then
-       write(chtmp(1:1),'(a1)')"0"
-       write(chtmp(2:2),'(i1)')nt
-      else
-       write(chtmp(1:2),'(i2)')nt
-      endif
-   
+
+      write(chtmp,'(i3.3)')nt
       write(grib_id,'(i3.3)')id_gribdomain
 
       call baopen(ifilw,trim(outfile)//'.f'//chtmp//'.'//grib_id//&

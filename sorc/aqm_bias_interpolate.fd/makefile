@@ -17,6 +17,9 @@
 # 2022-may-23	Add netcdf_sup.f90.
 # 2022-may-27	Main program name change to aqm_bias_interpolate.f90.
 #
+# 2023-apr-09	Rename read_station_file.f90 to read_site_list.f90.
+#		Omit get_free_unit.f90, no longer needed.
+#
 # This make file uses a single large compile command, rather
 # than incremental compiles.  Environment variables are used to
 # keep the make file generic for different compilers.
@@ -47,7 +50,7 @@ Lib1 =		$(Lib)/config.f90		$(Lib)/stdlit.f90 \
 		$(Lib)/string_utils.f90
 
 Lib2 =		$(Lib)/date_utils.f90		$(Lib)/distance_btw_coords.f90 \
-		$(Lib)/expand_filename.f90	$(Lib)/get_free_unit.f90 \
+		$(Lib)/expand_filename.f90 \
 		$(Lib)/get_param_module.f90	$(Lib)/message_nolog.f90 \
 		$(Lib)/netcdf_sup.f90		$(Lib)/netwrite3.no-udunits.f90 \
 		$(Lib)/read_line.f90		$(Lib)/read_netcdf_var.f90
@@ -64,7 +67,7 @@ Subs.plib =	$(Plib)/gridlocation.f90	$(Plib)/read_grid_coords.f90 \
 
 Subs.local =	derivatives.f90			get_command_args.interp.f90 \
 		interpolate.f90			read_config_file_interp.f90 \
-		read_station_file.f90		write_interp_netcdf.f90
+		read_site_list.f90		write_interp_netcdf.f90
 
 # Main program.
 

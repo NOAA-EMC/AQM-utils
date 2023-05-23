@@ -45,7 +45,7 @@
 * 2021-apr-27	Add parameters "site blocking list" and "number of days
 *                 for kalman filter".
 *
-* 2022-apr-24	Versions for online-CMAQ.
+* 2022-apr-24	Versions for Online-CMAQ.
 *		Support one-per-hour forecast files in gridded input template.
 *		Change substring code for forecast cycle from HH to CC, to
 *		  be distinct from new code FF for specific forecast hour.
@@ -54,7 +54,14 @@
 *		Add parameters for shortened training period.
 * 2022-jun-01	Switch to original grid coordinate file.
 *
-* 2022-jul-25   Version for AQMv7.
+* 2022-jul-25	Version for AQMv7.
+* 2022-dec-03	Switch from 73 to 72 forecast hours, for new Online-CMAQ.
+*
+* 2023-mar-17	Minor.  Path updates for AirNow and C55 on Hera.
+* 2023-mar-27	Add parameters for number of analogs for short training period.
+*
+* 2023-apr-10	AQMv7.  Switch to AirNow Netcdf data set, new obs var names.
+*		Add obs minimum value limit, for AirNow negative value support.
 *
 * Blank lines and asterisk in column 1 are comment lines.
 * Tables are free format, space delimited.
@@ -80,7 +87,7 @@
 
 * File templates.
 
-obs file template           = data/bcdata.YYYYMM/airnow/YYYY/YYYYMMDD/b008/xx021
+obs file template           = data/bcdata.YYYYMM/airnow/netcdf/YYYY/YYYYMMDD/HourlyAQObs.YYYYMMDD.nc
 interp file template        = data/bcdata.YYYYMM/interpolated/ozone/YYYY/forecasts.interp.YYYYMMDD.CCz.nc
 gridded input file template = data/bcdata.YYYYMM/grid/CCz/YYYYMMDD/aqm.tCCz.chem_sfc.fFFF.nc
 
@@ -145,7 +152,7 @@ number of forecast hours    = 6
 * Note, obs and model target vars must be the same quantity
 * for valid bias correction.  User is responsible.
 
-target obs variable         = COPO
+target obs variable         = OZONE
 target model variable       = o3
 
 * Analog variable table; each variable to be included in current analysis.
@@ -190,12 +197,12 @@ derivative input V wind         = vgrd10m
 * Input filter controls.
 *-------------------------------------------------------
 
-* Valid maximum for obs input data, after internal units conversion.
+* Limits for valid obs input data, after internal units conversion.
 * Specify in ppmv for ozone, or microgram/m^3 for PM2.5.
+* Negative lower limit accepts instrument drift in AirNow data sets.
 
-* This limit is not currently active for ozone.
-
-obs maximum valid input = 5
+obs minimum valid input = -0.005
+obs maximum valid input =  5.0
 
 * Obs data blackout interval, to suppress all obs within problematic
 * time interval, such as Fourth of July.
@@ -254,10 +261,13 @@ analog search window offsets     = -0, +0
 number of days for kalman filter = 999
 
 * Parameters for shortened training period.
-* Set both to zero, if not used.
+* Set all to zero, if not used.
 
-obs threshold to shorten training period = 0
-number of days in short training period  = 0
+obs threshold to shorten training period            = 0
+number of days in short training period             = 0
+
+number of analogs for short training period         = 0
+minimum number of analogs for short training period = 0
 
 *-------------------------------------------------------
 * Post processing controls.

@@ -1,11 +1,16 @@
 !------------------------------------------------------------------------------
 !
-! read_station_file.f90 -- Read list of site coordinates for bias correction.
+! read_site_list.f90 -- Read list of site coordinates for bias correction.
 !
 ! This is a support routine for the NOAA NCO/ARL/PSD bias
 ! correction program for CMAQ forecast outputs.
 !
-! 2014-apr-24	Original version.  By Dave Allured.
+! 2014-apr-24	read_station_file.f90:
+!		Original version.  By Dave Allured, NOAA/PSD/CIRES.
+!
+! 2023-apr-09	read_site_list.f90:
+!		Subroutine and labels renamed for consistency.
+!		Use fortran 2008 "newunit" rather than private function.
 !
 ! Input file format:
 !
@@ -20,38 +25,35 @@
 !
 !------------------------------------------------------------------------------
 
-module read__station_file
+module read__site_list
 contains
 
-subroutine read_station_file (filename, stn_ids, stn_lats, stn_lons, nsites)
+subroutine read_site_list (filename, site_ids, site_lats, site_lons, nsites)
 
    use config, only : dp
    implicit none
 
-   character(*), intent(in )              :: filename	  ! station file name
+   character(*), intent(in )              :: filename	   ! input file name
 
-   character(*), intent(out), allocatable :: stn_ids(:)	  ! site ID strings
-   real(dp),     intent(out), allocatable :: stn_lats(:)  ! site latitudes
-   real(dp),     intent(out), allocatable :: stn_lons(:)  ! site longitudes
-   integer,      intent(out)              :: nsites	  ! number of sites read
-
-   integer get_free_unit			! function def.
+   character(*), intent(out), allocatable :: site_ids(:)   ! site ID strings
+   real(dp),     intent(out), allocatable :: site_lats(:)  ! site latitudes
+   real(dp),     intent(out), allocatable :: site_lons(:)  ! site longitudes
+   integer,      intent(out)              :: nsites	   ! no. of sites read
 
 ! Local variables.
 
-   character(len(stn_ids)) min_id, max_id
+   character(len(site_ids)) min_id, max_id
    character header*4
 
    integer infile, ios, i, lnum, nheaders
 
-! First pass.  Just count the number of actual station lines in the  file.
+! First pass.  Just count the number of actual site lines in the file.
 
    print *
-   print *, 'read_station_file: Read station list.'
-   print *, '  Station file = ' // trim (filename)
+   print *, 'read_site_list: Read site list.'
+   print *, '  Site list file = ' // trim (filename)
 
-   infile = get_free_unit ()			! allocate a fortran unit number
-   open (infile, file=filename, status='old', action='read')
+   open (newunit=infile, file=filename, status='old', action='read')
 
    nheaders = 0					! count header lines...
    do
@@ -71,8 +73,8 @@ subroutine read_station_file (filename, stn_ids, stn_lats, stn_lons, nsites)
 
 ! Second pass.  Read site ID's and coordinates into arrays.
 
-   allocate (stn_ids(nsites))			! allocate output arrays
-   allocate (stn_lats(nsites), stn_lons(nsites))
+   allocate (site_ids(nsites))			! allocate output arrays
+   allocate (site_lats(nsites), site_lons(nsites))
 
    rewind (infile)				! go back to start of file
 
@@ -80,12 +82,12 @@ subroutine read_station_file (filename, stn_ids, stn_lats, stn_lons, nsites)
       read (infile, '(a)')
    end do
 
-   do i = 1, nsites				! read all station lines
-      read (infile, *, iostat=ios) stn_ids(i), stn_lats(i), stn_lons(i)
+   do i = 1, nsites				! read all site lines
+      read (infile, *, iostat=ios) site_ids(i), site_lats(i), site_lons(i)
       						! free format works here
       if (ios /= 0) then
          lnum = nheaders + i
-         print *, '*** read_station_file: Read error on line ', lnum
+         print *, '*** read_site_list: Read error on line ', lnum
          call exit (1)
       end if
    end do
@@ -94,22 +96,22 @@ subroutine read_station_file (filename, stn_ids, stn_lats, stn_lons, nsites)
    						!   and release unit number
 ! Progress display, show statistics.
 
-   min_id = stn_ids(1)
-   max_id = stn_ids(1)
+   min_id = site_ids(1)
+   max_id = site_ids(1)
 
    do i = 2, nsites
-      min_id = min (min_id, stn_ids(i))
-      max_id = max (max_id, stn_ids(i))
+      min_id = min (min_id, site_ids(i))
+      max_id = max (max_id, site_ids(i))
    end do
 
    print '(4a)', '   Lowest, highest station ID''s =  ', trim (min_id), &
       ', ', trim (max_id)
 
    print '(2(a,f10.5))', '   Min, max latitudes           = ', &
-      minval (stn_lats), ',', maxval (stn_lats)
+      minval (site_lats), ',', maxval (site_lats)
    print '(2(a,f10.5))', '   Min, max longitudes          = ', &
-      minval (stn_lons), ',', maxval (stn_lons)
+      minval (site_lons), ',', maxval (site_lons)
 
-end subroutine read_station_file
+end subroutine read_site_list
 
-end module read__station_file
+end module read__site_list

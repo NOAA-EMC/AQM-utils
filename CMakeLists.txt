@@ -22,6 +22,9 @@ project(
   VERSION 1.0.0
   LANGUAGES Fortran)
 
+# User options.
+option(OPENMP "use OpenMP threading" ON)
+
 # include local macros
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -31,6 +34,10 @@ find_package(g2 REQUIRED)
 find_package(w3emc REQUIRED)
 find_package(w3nco REQUIRED)
 find_package(bacio REQUIRED)
+
+if(OPENMP)
+  find_package(OpenMP REQUIRED COMPONENTS Fortran)
+endif()
 
 if(BUILD_POST_STAT)
   find_package(PNG REQUIRED)

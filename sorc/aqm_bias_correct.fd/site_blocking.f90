@@ -7,6 +7,8 @@
 !
 ! 2021-apr-27	Original version.  By Dave Allured.
 !
+! 2023-apr-09	Minor update for 12-character site ID's.
+!
 ! Summary:
 !
 ! * Read and validate the site blocking list file.
@@ -89,7 +91,7 @@ subroutine site_blocking (filename, site_ids, start_date, base_year, vmiss, &
       print *, 'Counts in detail table are only for given site and time' &
                  // ' interval.'
       print *
-      print *, '    Site ID  Values changed  Missing before   Missing after'
+      print *, '     Site ID     Values changed  Missing before   Missing after'
    end if
 
    nmiss1 = count (obs_data == vmiss)		! count missing before blocking
@@ -119,7 +121,7 @@ command_loop: &
       t1 = max (t1, 1)				! constrain to available
       t2 = min (t2, ntimes)			! time range of input obs
 
-      if (diag >= 4) print '(i2,1x,a,8i7)', ilist, site_ids(si), si, &
+      if (diag >= 4) print '(i3,1x,a,8i7)', ilist, site_ids(si), si, &
          block_starts(ilist), block_ends(ilist), tr_day1, tr_day2, t1, t2,ntimes
 
 ! Block current site's data in the specified time interval.
@@ -138,7 +140,7 @@ command_loop: &
 ! Print diagnostic for each blocking command.
 
       nchange = nafter - nbefore
-      if (diag >= 2) print '(3x,a,3i16)', site_ids(si), nchange, nbefore, nafter
+      if (diag >= 2) print '(4x,a,3i16)', site_ids(si), nchange, nbefore, nafter
 
    end do command_loop
 

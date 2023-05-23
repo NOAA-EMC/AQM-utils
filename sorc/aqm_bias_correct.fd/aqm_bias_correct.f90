@@ -70,11 +70,26 @@
 !		  arrays in ppm/ppmV conform to new forecast grids in ppb.
 !		Add units attributes to output files.
 ! 2022-may-27	Add option for short training period when high obs detected.
+!		Add maximum value limit for input PM2.5.
 !
 ! 2022-jun-03	aqm_bias_correct.f90:
 !		Main program name change to conform with NCEP/NCO.
 !		Add output routine to conform with new forecast file layout.
 ! 2022-dec-03	RRFS: Ignore *.f000 files, start with *.f001 = forecast hour 1.
+!
+! 2023-mar-28	Modify number of analogs when short training period is selected.
+!		Add OpenMP diagnostics.
+!		Fix PM2.5 QC for higher input threshold values.
+! 2023-apr-06	Add support for AirNow Netcdf files, derived from AirNow
+!		  HourlyAQ files in text/CSV format.
+!		Increase site ID strings from 9 to 12 characters maximum.
+! 2023-apr-06	New time alignment standard, hourly forward averaged
+!		  convention, for all obs input sources.
+!		Internal change only.  Affects only the obs_in array.
+!		Compensated in align_obs_to_forecasts.f90.
+!		See time alignment notes in read_obs_series_bufr.f90.
+! 2023-apr-11	Add lower limit for AirNow negative input values.
+!		Add low/high input limits for ozone as well as PM2.5.
 !
 ! * Remember to update the program_id below.
 !
@@ -181,6 +196,7 @@ program aqm_bias_correct
    use kf__luca,               only : kpar_type
    use index_to_date_mod
    use print__library_info
+   use print__omp_info
    use probability_mod
    use probability_type,       only : prob_type
    use read__config_file_main
@@ -200,12 +216,12 @@ program aqm_bias_correct
    implicit none
 
    character(*), parameter :: &
-      program_id = 'aqm_bias_correct.f90 version 2022-dec-03'
+      program_id = 'aqm_bias_correct.f90 version 2023-apr-11'
 
 ! Local variables.
 
-   integer, parameter :: id_len = 9		! station ID string length
-   						! for 9-digit AIRNow site ID's
+   integer, parameter :: id_len = 12		! station ID string length
+   						! for 12-digit AirNow site ID's
    character(200) config_file, site_list_title
    character(60)  title_varname
    character(24)  fdate_str
@@ -233,7 +249,7 @@ program aqm_bias_correct
 
    integer nhours, obs_blackout_start(3), obs_blackout_end(3)
 
-   real(dp) obs_max_input
+   real(dp) obs_min_input, obs_max_input
 
    logical stop_after_filter
 
@@ -246,7 +262,7 @@ program aqm_bias_correct
 
 ! Analog var table (config file).
 
-   character(60),  allocatable :: analog_vars(:)	! var config data (V)
+   character(60), allocatable :: analog_vars(:)		! var config data (V)
 
 ! Obs input data.
 
@@ -353,9 +369,10 @@ program aqm_bias_correct
       call exit (1)
    end if
 
-! Print library version information.
+! Print environment information, including library versions.
 
    if (diag >= 2) call print_library_info
+   if (diag >= 2) call print_omp_info
 
 !-----------------------------------------------------------------
 ! Read and process the configuration file.
@@ -373,7 +390,7 @@ program aqm_bias_correct
       target_obs_var, target_model_var, analog_vars, &
       filter_method, output_limit_method, site_array_file_template, &
       site_result_file_template, day_array_file_template, stop_after_filter, &
-      obs_max_input, obs_blackout_start, obs_blackout_end, &
+      obs_min_input, obs_max_input, obs_blackout_start, obs_blackout_end, &
       apar, dpar, fpar, kpar, prob, wpar)
 
 !-----------------------------------------------------------------
@@ -448,8 +465,8 @@ program aqm_bias_correct
    						! NOT current forecast date
 
    call read_obs_qc (obs_file_template, target_obs_var, start_date, &
-      training_end_date, base_year, obs_max_input, standard_vmiss, &
-      grid_lats, grid_lons, site_blocking_list, diag, &
+      training_end_date, base_year, obs_min_input, obs_max_input, &
+      standard_vmiss, grid_lats, grid_lons, site_blocking_list, diag, &
       obs_ids, obs_lats, obs_lons, obs_in, obs_units)
 
 !---------------------------------------------------------------------

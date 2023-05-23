@@ -39,6 +39,9 @@
 !		Remove dependency on get_free_unit, use fortran 2008 newunit.
 ! 2022-may-27	Add params for obs max valid input, and short training period.
 !
+! 2023-mar-27	Add parameters for number of analogs for short training period.
+! 2023-apr-08	Add "obs minimum valid input".
+!
 ! Notes:
 !
 ! The configuration file is a simple text file containing file
@@ -61,8 +64,9 @@ subroutine read_config_file_main (config_file, obs_file_template, &
       site_exception_file, site_blocking_list, nhours, target_obs_var, &
       target_model_var, analog_vars, filter_method, output_limit_method, &
       site_array_file_template, site_result_file_template, &
-      day_array_file_template, stop_after_filter, obs_max_input, &
-      obs_blackout_start, obs_blackout_end, apar, dpar, fpar, kpar, prob, wpar)
+      day_array_file_template, stop_after_filter, obs_min_input, &
+      obs_max_input, obs_blackout_start, obs_blackout_end, &
+      apar, dpar, fpar, kpar, prob, wpar)
 
    use analog__ensemble,   only : apar_type
    use compute__wind,      only : dpar_type
@@ -102,7 +106,7 @@ subroutine read_config_file_main (config_file, obs_file_template, &
    character(*), intent(out)              :: site_array_file_template
    character(*), intent(out)              :: site_result_file_template
    character(*), intent(out)              :: day_array_file_template
-   real(dp),     intent(out)              :: obs_max_input
+   real(dp),     intent(out)              :: obs_min_input, obs_max_input
    integer,      intent(out)              :: obs_blackout_start(3)	! M-D-H
    integer,      intent(out)              :: obs_blackout_end(3)	! M-D-H
    logical,      intent(out)              :: stop_after_filter
@@ -263,6 +267,10 @@ read_file: &
       print '(a)', '* Input filter controls:'
       print *
 
+      call get_param_real ('obs minimum valid input', obs_min_input, cf, &
+         status, lnum)
+      if (status /= normal) exit read_file
+
       call get_param_real ('obs maximum valid input', obs_max_input, cf, &
          status, lnum)
       if (status /= normal) exit read_file
@@ -333,6 +341,8 @@ read_file: &
          kpar%ndays_kalman, cf, status, lnum)
       if (status /= normal) exit read_file
 
+      print *
+
       call get_param_real ('obs threshold to shorten training period', &
          apar%short_train_thresh, cf, status, lnum)
       if (status /= normal) exit read_file
@@ -340,6 +350,20 @@ read_file: &
       call get_param_int ('number of days in short training period', &
          apar%short_train_ndays, cf, status, lnum)
       if (status /= normal) exit read_file
+
+      call get_param_int ('number of analogs for short training period', &
+         apar%num_analogs_short, cf, status, lnum)
+      if (status /= normal) exit read_file
+
+      call get_param_int('minimum number of analogs for short training period',&
+         apar%min_num_analogs_short, cf, status, lnum)
+      if (status /= normal) exit read_file
+
+!-----------------------------------------------------------
+! Read post processing controls.
+!-----------------------------------------------------------
+
+      print *
 
       call get_param_string ('output limit method', output_limit_method, cf, &
          status, lnum, nonblank)

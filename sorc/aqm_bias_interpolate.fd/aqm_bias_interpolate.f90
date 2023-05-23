@@ -55,6 +55,8 @@
 !		Main program name change to conform with NCEP/NCO.
 ! 2022-dec-03	RRFS: Ignore *.f000 files, start with *.f001 = forecast hour 1.
 !
+! 2023-apr-11	Increase site ID's from 9 to 12 characters maximum, for AirNow.
+!
 ! * Remember to update the program_id below.
 !
 ! Input:
@@ -104,7 +106,7 @@
 !
 ! Example:
 !
-! ./aqm_bias_interpolate config.interp.0424 12z 20140101 20140510
+! ./aqm_bias_interpolate config.interp.ozone.7-vars 12z 20230101 20230331
 !
 !------------------------------------------------------------------------------
 
@@ -118,15 +120,18 @@ program aqm_bias_interpolate
    use interpolate_mod
    use read__config_file_interp
    use read__gridded_vars
-   use read__station_file
+   use read__site_list
    use stdlit
    use write__interp_netcdf
    implicit none
 
    character(*), parameter :: &
-      program_id = 'aqm_bias_interpolate.f90 version 2022-dec-03'
+      program_id = 'aqm_bias_interpolate.f90 version 2023-apr-11'
 
 ! Local variables.
+
+   integer, parameter :: id_len = 12		! site ID length for AirNow
+   						!  site ID's up to 12 characters
 
    character(200) config_file, site_file, grid_coord_file
    character(200) interp_file, interp_file_template
@@ -144,26 +149,27 @@ program aqm_bias_interpolate
 
 ! Dynamic arrays.
 
-   character(80),  allocatable :: varnames(:)		   ! var config data (V)
-   character(30),  allocatable :: reader_codes(:)	   ! (V)
-   character(200), allocatable :: grid_file_templates(:)   ! (V)
-   character(200), allocatable :: formulas(:)		   ! for derivatives (D)
-   character(60),  allocatable :: units(:)		   ! units attribs (V)
+   character(80),  allocatable :: varnames(:)		 ! var config data (V)
+   character(30),  allocatable :: reader_codes(:)	 ! (V)
+   character(200), allocatable :: grid_file_templates(:) ! (V)
+   character(200), allocatable :: formulas(:)		 ! for derivatives (D)
+   character(60),  allocatable :: units(:)		 ! units attributes (V)
 
-   logical,        allocatable :: var_save(:)		   ! (V)
-   integer,        allocatable :: ind_save(:)		   ! (V subset)
+   logical,        allocatable :: var_save(:)		! (V)
+   integer,        allocatable :: ind_save(:)		! (V subset)
 
-   integer,        allocatable :: nhours_actual(:)	   ! actual hrs read (V)
+   integer,        allocatable :: nhours_actual(:)	! actual hrs read (V)
 
-   character(9), allocatable :: site_ids(:)		   ! site ID's (S)
-   real(dp),     allocatable :: site_lats(:), site_lons(:) ! site coords (S)
+   character(id_len), allocatable :: site_ids(:)	! site ID's (S)
+   real(dp),       allocatable :: site_lats(:)		! site coordinates (S)
+   real(dp),       allocatable :: site_lons(:)
 
-   real(dp), allocatable :: grid_lats(:,:)		! grid coordinates (X,Y)
-   real(dp), allocatable :: grid_lons(:,:)
+   real(dp),       allocatable :: grid_lats(:,:)	! grid coordinates (X,Y)
+   real(dp),       allocatable :: grid_lons(:,:)
 
-   real, allocatable :: grid_data(:,:,:,:)		! gridded forecast data
+   real,           allocatable :: grid_data(:,:,:,:)	! gridded forecast data
   							!  (X, Y, vars, hours)
-   real, allocatable :: interp_data(:,:,:)		! interpolated data
+   real,           allocatable :: interp_data(:,:,:)	! interpolated data
   							!  (sites, vars, hours)
 ! Program parameters.
 
@@ -201,7 +207,7 @@ program aqm_bias_interpolate
 
 ! Read site coordinates for interpolation.
 
-   call read_station_file (site_file, site_ids, site_lats, site_lons, nsites)
+   call read_site_list (site_file, site_ids, site_lats, site_lons, nsites)
 
    if (diag >= 2)  print *
 

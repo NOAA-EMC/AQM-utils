@@ -20,6 +20,8 @@
 ! 2022-may-31	Add automatic units conversion for the target forecast
 !		  variable, ppb to ppm.
 !
+! 2023-apr-09	Minor update for 12-character site ID's.
+!
 ! Primary inputs:
 !
 ! * Data set of daily Netcdf files containing MET and CMAQ 48-hour
@@ -256,8 +258,8 @@ date_loop: &
 
       if (diag >= 5 .or. (diag >= 3 .and. .not. allocated (save_ids)) ) then
          print *
-         print '(4x,a)', ' Site ID        Lat          Lon'
-         print '(4x,a)', '---------    ---------    ---------'
+         print '(4x,a)', ' Site ID           Lat          Lon'
+         print '(4x,a)', '---------       ---------    ---------'
          fmt1 = '(4x,a,2f13.5)'
          print fmt1, (site_ids(i), site_lats(i), site_lons(i), i=1,nsites)
          print *

@@ -19,6 +19,8 @@
 !		Remove dependency on get_free_unit, use fortran 2008 newunit.
 ! 2022-apr-19	Change from hard coded derivatives, to formula expressions.
 !
+! 2023-apr-09	Rename parameter "station file" to "site list" for consistency.
+!
 ! Notes:
 !
 ! The configuration file is a simple text file containing file
@@ -37,7 +39,7 @@
 module read__config_file_interp
 contains
 
-subroutine read_config_file_interp (config_file, station_file, &
+subroutine read_config_file_interp (config_file, site_list_file, &
       grid_coord_file, interp_file_template, nhours, varnames, reader_codes, &
       infile_templates, formulas, var_save)
 
@@ -49,7 +51,7 @@ subroutine read_config_file_interp (config_file, station_file, &
 
    character(*), intent(in ) :: config_file	! name of config file to read
 
-   character(*), intent(out) :: station_file
+   character(*), intent(out) :: site_list_file
    character(*), intent(out) :: grid_coord_file
    character(*), intent(out) :: interp_file_template
    integer,      intent(out) :: nhours
@@ -118,7 +120,7 @@ subroutine read_config_file_interp (config_file, station_file, &
 read_file: &
    do					! block for escape handling only
 
-      call get_param_string ('station file', station_file, cf, status, lnum, &
+      call get_param_string ('site list', site_list_file, cf, status, lnum, &
          nonblank)
       if (status /= normal) exit read_file
 
