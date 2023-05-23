@@ -206,7 +206,7 @@
        call nemsio_open(gfile,trim(aline),'READ',iret=iret,gdatatype="bin4")
        if(iret.ne.0) then
          print*,'failed to open ',trim(aline)
-	 stop
+	 stop 11
        endif	 
       call nemsio_getfilehead(gfile,iret=iret,nrec=nrec,dimx=im,	  &
          dimy=jm,dimz=lm,idate=idate,gdatatype=gdatatype,gtype=gtype,	  &
@@ -214,7 +214,10 @@
         nfsecondn=nfsecondn,nfsecondd=nfsecondd,nframe=nframe,  	  &
         ntrac=ntrac,nsoil=nsoil,extrameta=extrameta,nmeta=nmeta,	  &
         tlmeta=tlmeta)
-       
+       if(iret.ne.0) then
+         print*,'failed to get file head ',trim(aline)
+	 stop 12
+       endif 
 !        jdate=julian(idate(1),idate(2),idate(3))
 	
 !	jfiledate=idate(1)*1000+jdate                      ! date in YYYYDDD
@@ -257,6 +260,11 @@
            
 
        call nemsio_getfilehead(gfile,iret=iret,lat=work,lon=work2)
+       if(iret.ne.0) then
+         print*,'failed to get file head ',trim(aline)
+	 stop 13
+       endif 
+
        do i=1,igocart
         do j=1,jgocart
 	 glat(i,j)=work(i+(j-1)*igocart)
