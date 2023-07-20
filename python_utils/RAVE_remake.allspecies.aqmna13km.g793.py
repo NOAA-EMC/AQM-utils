@@ -40,7 +40,6 @@ def RAVE_remake_allspecies(date, cyc, input_fire, output_fire):
     Store_latlon_by_Level(fout,'Longitude',tgt_lont,'cell center longitude','degrees_east','2D','-9999.f','1.f')
     Store_latlon_by_Level(fout,'land_cover',land_cover,'land cover type','unitless','2D','-9999.f','1.f')
 
-    #vars_emis = ["PM2.5","CO","VOCs","NOx","BC","OC","SO2","NH3","FRP_MEAN"]
     vars_emis = ["PM25_scaled","CO","VOCs","NOx","BC_scaled","OC_scaled","SO2","NH3","FRP_MEAN"]
     
     for svar in vars_emis:
