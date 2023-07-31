@@ -6,7 +6,6 @@ and `b.nc` is one of the GFS LBC files.
 """
 import argparse
 import itertools
-from glob import glob
 from pathlib import Path
 
 import netCDF4 as nc4
@@ -23,7 +22,7 @@ parser.add_argument(
     "--met",
     nargs="+",
     help=(
-        "Meteo (GFS) LBC files, to which the chem variables will be added."
+        "Meteo (GFS) LBC files, to which the chem variables will be added. "
         "File name may have the pattern `gfs_bndy.tile?.???.nc`."
     ),
     required=True,
@@ -70,10 +69,10 @@ if rm:
         for name in met_names:
             v = met[name]
             v_new = ds.createVariable(name, v.dtype, v.dimensions)
-            v_new.setncatts({key: getattr(variable, key) for key in v.ncattrs()})
+            v_new.setncatts({key: getattr(v, key) for key in v.ncattrs()})
             v_new[:] = v[:]
             print(f"- {name}")
-            
+
         ds.close()
 
 else:
@@ -96,4 +95,3 @@ for met in mets.values():
     met.close()
 
 raise SystemExit(0)
-
