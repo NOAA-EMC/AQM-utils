@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Combine LBC files from GFS into one
 """
