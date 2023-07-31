@@ -49,23 +49,10 @@ chem_fp = args.chem
 # Open files
 chem = nc4.Dataset(chem_fp, "r")
 mets = {p: nc4.Dataset(p, "r+") for p in files}
-rms = {}
-
 met0 = mets[files[0]]
-allowed_dims = set(met0.dimensions)
-
-for name, variable in chem.variables.items():
-    print(name)
-    assert set(variable.dimensions) < allowed_dims
-    for met_fp, met in mets.items():
-        if name not in met.variables:
-            # add
-            met.createVariable(name, variable.dtype, variable.dimensions)
-            met[name].setncatts({key: getattr(variable, key) for key in variable.ncattrs()})
-            met[name][:] = chem[name][:]
-            print(f"-> {met_fp}")
 
 if rm:
+    # Create new files without the chem variables for testing the append on
     met_names = [vn for vn in met0.variables if vn not in chem.variables]
     dims_needed = set(itertools.chain.from_iterable(met0[vn].dimensions for vn in met_names))
     for met_fp, met in mets.items():
@@ -76,7 +63,8 @@ if rm:
 
         # dims
         for name, dimension in met.dimensions.items():
-            ds.createDimension(name, len(dimension) if not dimension.isunlimited() else None)
+            if name in dims_needed:
+                ds.createDimension(name, len(dimension) if not dimension.isunlimited() else None)
 
         # variables
         for name in met_names:
@@ -87,6 +75,20 @@ if rm:
             print(f"- {name}")
             
         ds.close()
+
+else:
+    # Normal usage (append in place)
+    allowed_dims = set(met0.dimensions)
+    for name, variable in chem.variables.items():
+        print(name)
+        assert set(variable.dimensions) < allowed_dims
+        for met_fp, met in mets.items():
+            if name not in met.variables:
+                # add
+                met.createVariable(name, variable.dtype, variable.dimensions)
+                met[name].setncatts({key: getattr(variable, key) for key in variable.ncattrs()})
+                met[name][:] = chem[name][:]
+                print(f"-> {met_fp}")
 
 # Close
 chem.close()
