@@ -29,22 +29,26 @@ parser.add_argument(
     required=True,
 )
 
+parser.add_argument(
+    "--rm",
+    action="store_true",
+    help=(
+        "Create new files with chem vars removed instead (for testing). "
+        "They will have stem suffix `_clean`."
+    ),
+    default=False,
+)
+
 args = parser.parse_args()
 print(args)
 
-rm = True  # Create new files with chem vars removed instead
-
-# TODO: probably easier to build the array of input fps and pass it to this script
-files = []
-files = sorted(glob("./tmp_AQM_LBCS/gfs_bndy.tile7.???.nc"))
-chem_fp = "./tmp_AQM_LBCS/gfs_bndy_chem_08.tile7.000.nc"
+rm = args.rm
+files = sorted(args.met)
+chem_fp = args.chem
 
 # Open files
 chem = nc4.Dataset(chem_fp, "r")
-mets = {
-    p: nc4.Dataset(p, "a")
-    for p in files
-}
+mets = {p: nc4.Dataset(p, "r+") for p in files}
 rms = {}
 
 met0 = mets[files[0]]
@@ -83,7 +87,6 @@ if rm:
             print(f"- {name}")
             
         ds.close()
-
 
 # Close
 chem.close()
