@@ -68,7 +68,7 @@
 
       integer  begyear,begdate,begtime,dtstep,numts,tstepdiff      
       namelist /control/bndname,dtstep,tstepdiff,mofile,	&	  !  input file preffix and suffix
-       lbcfile,topofile
+       lbcfile,topofile,myhalo
       
       CALL MPI_Init(ierr)
       CALL MPI_Comm_rank(MPI_COMM_WORLD, my_rank, ierr)
@@ -79,6 +79,7 @@
 
       sfact(1:ngocart,1:nspecies)=0.
       checkfact(1:ngocart,1:nspecies)=0.
+      myhalo=0
 ! read converting information
 
       open(7,file='gefs2lbc-nemsio.ini')
@@ -148,7 +149,12 @@
       call check(nf90_inq_dimid(ncid,'lat',iddim_lat))
       call check(nf90_inquire_dimension(ncid,iddim_lat,len=nlat))
       call check(nf90_inq_dimid(ncid,'halo',iddim_halo))
-      call check(nf90_inquire_dimension(ncid,iddim_halo,len=nhalo))
+      call check(nf90_inquire_dimension(ncid,iddim_halo,len=nhalo_orig))      
+      if(myhalo.gt.0) then
+        nhalo=myhalo
+      else
+        nhalo=nhalo_orig
+      endif		
       jmax=jmax1-nhalo*2
       if(nlon.ne.imax.or.nlat.ne.jmax) then
         print*,'dimension mismatch ',nlon,imax,nlat,jmax
@@ -170,7 +176,7 @@
       allocate(bndx(imax,nhalo,kmax,2,noutbnd),bndy(nhalo,jmax,kmax,2,noutbnd))
       bndx=0.
       bndy=0.
-      allocate(tmpbndx(imax,nhalo,kmax),tmpbndy(nhalo,jmax,kmax))
+      allocate(tmpbndx(imax,nhalo_orig,kmax),tmpbndy(nhalo_orig,jmax,kmax))
 
       print*,'read zh_bottom, zh_top'
       call check(nf90_inq_varid(ncid,'zh_bottom',idvar_zh_bottom))
@@ -214,17 +220,10 @@
         nfsecondn=nfsecondn,nfsecondd=nfsecondd,nframe=nframe,  	  &
         ntrac=ntrac,nsoil=nsoil,extrameta=extrameta,nmeta=nmeta,	  &
         tlmeta=tlmeta)
-       if(iret.ne.0) then
+        if(iret.ne.0) then
          print*,'failed to get file head ',trim(aline)
 	 stop 12
-       endif 
-!        jdate=julian(idate(1),idate(2),idate(3))
-	
-!	jfiledate=idate(1)*1000+jdate                      ! date in YYYYDDD
-!	jfiletime=idate(4)*10000+idate(5)*100+idate(6)     ! time in HHMMSS 
-!	call nextime(jfiledate,jfiletime,                    &
-!      	     nfhour*10000+nfminute*100+nfsecondn)
-!        jfiletime=jfiledate*100+jfiletime/10000            ! time in YYYYDDDHH
+        endif
 	
 	print *,trim(aline),' iret=',iret,'nrec=',nrec,'im=',im,       &
         'jm=',jm,'lm=',lm,'idate=',idate,'gdatatype=',gdatatype,       &
@@ -234,11 +233,6 @@
         nmeta,'nsoil=',nsoil,'extrameta=',extrameta,'ntrac=',	       &
         ntrac,'tlmeta=',tlmeta
        
-!       if(maxval(zhx(:,:,:,:)).gt.1e12) then 
-!          print*,'3 zhx overflowed ', maxval(zhx(:,:,:,:))
-!	  stop
-!       endif	    
-        
          igocart=im+2*nframe
 	 jgocart=jm+2*nframe
 	 kgocart=lm
@@ -258,13 +252,12 @@
          allocate(airgocart(igocart,jgocart,kgocart),STAT=ierr)
 	 allocate(vgocart(igocart,jgocart,kgocart),STAT=ierr)
            
-
        call nemsio_getfilehead(gfile,iret=iret,lat=work,lon=work2)
        if(iret.ne.0) then
          print*,'failed to get file head ',trim(aline)
 	 stop 13
-       endif 
-
+       endif
+        
        do i=1,igocart
         do j=1,jgocart
 	 glat(i,j)=work(i+(j-1)*igocart)
@@ -633,6 +626,11 @@
 	     enddo
 	    endif   
 	  endif
+	  if(nhalo.gt.nhalo_orig) then  ! fill the outter layer 
+	   do nthick=1,nhalo_orig-nhalo
+	     tmpbndx(1:imax,nhalo+nthick,1:kmax)=tmpbndx(1:imax,nhalo,1:kmax)
+	   enddo
+	  endif
 	  call check(nf90_put_var(ncid,idvar_tmp,tmpbndx))
 	  
 !! left/right
@@ -668,8 +666,13 @@
 	      tmpbndy(1:nhalo,1:jmax,k)=tmpbndy(1:nhalo,1:jmax,5) ! for bug in GEFS EC
 	     enddo
 	    endif 
-	  endif    
-	    call check(nf90_put_var(ncid,idvar_tmp,tmpbndy))         
+	  endif
+	  if(nhalo.gt.nhalo_orig) then  ! fill the outter layer 
+	   do nthick=1,nhalo_orig-nhalo
+	     tmpbndy(nhalo+nthick,1:jmax,1:kmax)=tmpbndy(nhalo,1:jmax,1:kmax)
+	   enddo
+	  endif   
+	  call check(nf90_put_var(ncid,idvar_tmp,tmpbndy))         
 	 enddo
 	enddo
       call check(nf90_close(ncid))
