@@ -8,7 +8,6 @@ message("=== AQM library directory: ${LIB_DIR}")
 
 list(APPEND SRC_FLIB1
     ${FLIB}/config.f90 
-    ${FLIB}/parse_varexp.f90    
     ${FLIB}/stdlit.f90
     ${FLIB}/read_netcdf_var.f90
     ${FLIB}/string_utils.f90
