@@ -369,20 +369,9 @@ program aqm_post_maxi_grib2_793
 !      do nt=1,nhours
 
       GRID=793
-      if(GRID.eq.148) then   !For HRRR grid
-         im=442
-         jm=265
-         jf=im*jm
-      elseif (GRID.eq.793) then
-         im=775
-         jm=488
-         jf=im*jm
-      else
-         call makgds(GRID, kgdss, gdss, lengds, ier)
-         im=kgdss(2)
-         jm=kgdss(3)
-         jf=kgdss(2)*kgdss(3)
-      end if
+      im=775
+      jm=488
+      jf=im*jm
 !
       cgrib1=''
       cgrib2=''

@@ -199,16 +199,9 @@
       do nt=1,nhours
 
        GRID=793
-       if(GRID.eq.793) then   !For HRRR grid
-         im=775
-         jm=488
-         jf=im*jm
-       else
-         call makgds(GRID, kgdss, gdss, lengds, ier)
-         im=kgdss(2)
-         jm=kgdss(3)
-         jf=kgdss(2)*kgdss(3)
-       end if
+       im=775
+       jm=488
+       jf=im*jm
 !
       base_year=iyear
 !      nowtime=ihour*10000
