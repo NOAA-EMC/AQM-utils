@@ -46,7 +46,13 @@ if(BUILD_POST_STAT)
   find_package(Jasper REQUIRED)
 endif()
 
-string(TOUPPER ${CMAKE_BUILD_TYPE} UPPER_CMAKE_BUILD_TYPE)
+# Set the build type.
+if(DEFINED CMAKE_BUILD_TYPE)
+  string(TOUPPER ${CMAKE_BUILD_TYPE} UPPER_CMAKE_BUILD_TYPE)
+else()
+  set(UPPER_CMAKE_BUILD_TYPE "")
+endif()
+
 if(UPPER_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -ftrapuv -check all")
 endif()
