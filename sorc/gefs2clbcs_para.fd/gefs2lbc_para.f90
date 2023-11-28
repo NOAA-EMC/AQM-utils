@@ -409,7 +409,7 @@
 	do i=1,igocart
 	 do j=1,jgocart
 	  zgocart(i,j,k+1)=zgocart(i,j,k)+work1(i+(j-1)*igocart)  ! interface level
-          pgocart(i,j,k)=worka(i+(j-1)*igocart) - workc(i+(j-1)*igocart)  
+          pgocart(i,j,k)=amax1(worka(i+(j-1)*igocart) - workc(i+(j-1)*igocart),0.1)
 	  tgocart(i,j,k)=work2(i+(j-1)*igocart)
 	  tv=work2(i+(j-1)*igocart)*(1+0.608*amax1(work3(i+(j-1)*igocart),1.e-15))  ! virtual temperature
 	  airgocart(i,j,k)=pgocart(i,j,k)/tv/287.04 ! air density in kg/m3  R= 287.04 m3 Pa /kg/K
