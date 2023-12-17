@@ -6,7 +6,7 @@
 !   for GOCART output in NEMS-IO format 
 !
 !   Author: Youhua Tang
-!   Revisions: parallel for RRFS-CMAQ
+!   Revisions: parallel for RRFS-SD
 !-------------------------------------------------------------------------------------
 !
 !                             nhalo_model=3
@@ -53,7 +53,8 @@
      
       integer netindex(ngocart),checklayer,modate(maxfile),         &
        mosecs(maxfile),julian,ismotime(maxfile),iemotime(maxfile),  &
-       idate(7),tlmeta,iret
+       idate(7),tlmeta,iret,igindex(1)
+       
       logical ingocart,lflag,extrameta,indexfind(nspecies)
       integer monthday(12),dimids(3)
       data monthday/31,30,31,30,31,30,31,31,30,31,30,31/
@@ -68,7 +69,7 @@
 
       integer  begyear,begdate,begtime,dtstep,numts,tstepdiff      
       namelist /control/bndname,dtstep,tstepdiff,mofile,	&	  !  input file preffix and suffix
-       lbcfile,topofile,myhalo
+       lbcfile,topofile,inblend  ! inside blending layers
       
       CALL MPI_Init(ierr)
       CALL MPI_Comm_rank(MPI_COMM_WORLD, my_rank, ierr)
@@ -79,7 +80,7 @@
 
       sfact(1:ngocart,1:nspecies)=0.
       checkfact(1:ngocart,1:nspecies)=0.
-      myhalo=0
+      inblend=0
 ! read converting information
 
       open(7,file='gefs2lbc-nemsio.ini')
@@ -149,15 +150,13 @@
       call check(nf90_inq_dimid(ncid,'lat',iddim_lat))
       call check(nf90_inquire_dimension(ncid,iddim_lat,len=nlat))
       call check(nf90_inq_dimid(ncid,'halo',iddim_halo))
-      call check(nf90_inquire_dimension(ncid,iddim_halo,len=nhalo_orig))      
-      if(myhalo.gt.0) then
-        nhalo=myhalo
-      else
-        nhalo=nhalo_orig
-      endif		
-      jmax=jmax1-nhalo*2
+      call check(nf90_inquire_dimension(ncid,iddim_halo,len=nhalo))      
+      
+      nhalo_outside=nhalo-inblend ! outside halo layers
+
+      jmax=jmax1-nhalo_outside*2
       if(nlon.ne.imax.or.nlat.ne.jmax) then
-        print*,'dimension mismatch ',nlon,imax,nlat,jmax
+        print*,'dimension mismatch ',nlon,imax,nlat,jmax,inblend
 	stop
       endif
       
@@ -176,7 +175,7 @@
       allocate(bndx(imax,nhalo,kmax,2,noutbnd),bndy(nhalo,jmax,kmax,2,noutbnd))
       bndx=0.
       bndy=0.
-      allocate(tmpbndx(imax,nhalo_orig,kmax),tmpbndy(nhalo_orig,jmax,kmax))
+      allocate(tmpbndx(imax,nhalo,kmax),tmpbndy(nhalo,jmax,kmax))
 
       print*,'read zh_bottom, zh_top'
       call check(nf90_inq_varid(ncid,'zh_bottom',idvar_zh_bottom))
@@ -284,6 +283,14 @@
 !---calculating lateral boundary horizontal index in GOCART coordinate
 
 ! --- top and bottom
+       glonmax=maxval(glon(:,1),dim=1)
+       igindex=maxloc(glon(:,1),dim=1)
+       igindexmax=igindex(1)
+       
+       glonmin=minval(glon(:,1),dim=1)
+       igindex=minloc(glon(:,1),dim=1)
+       igindexmin=igindex(1)
+       
        do i=1,imax
         ix=i
 	do j=1,nhalo
@@ -294,15 +301,30 @@
 	   jy=jmax1-nhalo+j ! top
 	  endif    
          
-	  do i2=1,igocart
-           if(xlon(ix,jy).ge.glon(i2,1).and.xlon(ix,jy).le.glon(i2+1,1)) then
-	    bndcoordx(i,j,m,1)=i2+(xlon(ix,jy)-glon(i2,1))/     &   ! i in gocart coordiate
-      	    (glon(i2+1,1)-glon(i2,1))  
-	    exit
-	   endif
-	  enddo
+	  if (xlon(ix,jy).lt.glonmin ) then
+	    bndcoordx(i,j,m,1)=igindexmin
+	  else if (xlon(ix,jy).gt.glonmax) then
+	    bndcoordx(i,j,m,1)=igindexmax
+	  else   
+	   do i2=1,igocart-1
+            if(xlon(ix,jy).ge.glon(i2,1).and.xlon(ix,jy).le.glon(i2+1,1)) then
+	     bndcoordx(i,j,m,1)=i2+(xlon(ix,jy)-glon(i2,1))/     &   ! i in gocart coordiate
+      	     (glon(i2+1,1)-glon(i2,1))  
+	     exit
+	    endif
+	   enddo
+	  endif
+	  if(bndcoordx(i,j,m,1).lt.1) then
+	     print*,'bndcoordx-1 out of range',i,j,m,bndcoordx(i,j,m,1),ix,jy,xlon(ix,jy),i2,glon(i2,1)
+	     stop 997
+	  endif  
+	  if(i2.ge.igocart) then
+	     print*,'xlon is out of range ',xlon(ix,jy)
+	     print*,'glon=',glon(:,1)
+	     stop 999
+	  endif
 	 
-          do j2=1,jgocart
+          do j2=1,jgocart-1
 	   if( (glatint.gt.0.and.xlat(ix,jy).ge.glat(i2,j2).and.    &
             xlat(ix,jy).le.glat(i2,j2+1)).OR.(glatint.lt.0.and.    &
              xlat(ix,jy).le.glat(i2,j2).and.xlat(ix,jy)  	  &
@@ -312,6 +334,10 @@
 	    exit
 	   endif
 	  enddo
+	  if(bndcoordx(i,j,m,2).lt.1) then
+	     print*,'bndcoordx-2 out of range',i,j,m,bndcoordx(i,j,m,2),xlat(ix,jy),glatint,glat(i2,j2),glat(i2+1,j2+1)
+	     stop 998
+	  endif  
 	 
          enddo
         enddo
@@ -320,7 +346,7 @@
 ! --- left and right
        
       do j=1,jmax
-       jy=j+nhalo
+       jy=j+nhalo_outside
            
 	do i=1,nhalo
 	 do m=1,2
@@ -409,7 +435,7 @@
 	do i=1,igocart
 	 do j=1,jgocart
 	  zgocart(i,j,k+1)=zgocart(i,j,k)+work1(i+(j-1)*igocart)  ! interface level
-          pgocart(i,j,k)=amax1(worka(i+(j-1)*igocart) - workc(i+(j-1)*igocart),0.1)
+          pgocart(i,j,k)=amax1(worka(i+(j-1)*igocart) - workc(i+(j-1)*igocart),0.1)  
 	  tgocart(i,j,k)=work2(i+(j-1)*igocart)
 	  tv=work2(i+(j-1)*igocart)*(1+0.608*amax1(work3(i+(j-1)*igocart),1.e-15))  ! virtual temperature
 	  airgocart(i,j,k)=pgocart(i,j,k)/tv/287.04 ! air density in kg/m3  R= 287.04 m3 Pa /kg/K
@@ -426,12 +452,16 @@
 	  y=bndcoordx(i,j,m,2)
 	  xratio=x-int(x)
 	  yratio=y-int(y)
-
+          	   
 	  do kp=1,kgocart+1
-      	   tmpa(kp)=(1-yratio)*(zgocart(int(x),int(y),kp)*      &    ! horizontally interpolate height
-     	    (1-xratio)+zgocart(int(x)+1,int(y),kp)*xratio)+     &
-     	    yratio*(zgocart(int(x),int(y)+1,kp)*(1-xratio)+     &
-     	    zgocart(int(x)+1,int(y)+1,kp)*xratio)
+	   if(x.lt.igocart) then
+      	    tmpa(kp)=(1-yratio)*(zgocart(int(x),int(y),kp)*      &    ! horizontally interpolate height
+     	     (1-xratio)+zgocart(int(x)+1,int(y),kp)*xratio)+     &
+     	     yratio*(zgocart(int(x),int(y)+1,kp)*(1-xratio)+     &
+     	     zgocart(int(x)+1,int(y)+1,kp)*xratio)
+	   else
+	     tmpa(kp)=(1-yratio)*zgocart(int(x),int(y),kp)+yratio*zgocart(int(x),int(y)+1,kp)
+	   endif  
 	   if(kp.ge.2) tmpa(kp-1)=0.5*(tmpa(kp-1)+tmpa(kp)) ! convert to mid-layer 
           enddo
 
@@ -535,13 +565,17 @@
 	y=bndcoordx(i,j,m,2)
 	xratio=x-int(x)
 	yratio=y-int(y)
-
-	tmpa(1:kgocart)=(1-yratio)*(vgocart(int(x),int(y),     & ! horizontally interpolate values
-     	 1:kgocart)*(1-xratio)+vgocart(int(x)+1,int(y),       &
-     	 1:kgocart)*xratio)+yratio*(vgocart(int(x),int(y)+1,  &
-     	 1:kgocart)*(1-xratio)+vgocart(int(x)+1,int(y)+1,     &
-     	 1:kgocart)*xratio)
-	
+        
+	if(x.lt.igocart) then
+	 tmpa(1:kgocart)=(1-yratio)*(vgocart(int(x),int(y),     & ! horizontally interpolate values
+     	  1:kgocart)*(1-xratio)+vgocart(int(x)+1,int(y),       &
+     	  1:kgocart)*xratio)+yratio*(vgocart(int(x),int(y)+1,  &
+     	  1:kgocart)*(1-xratio)+vgocart(int(x)+1,int(y)+1,     &
+     	  1:kgocart)*xratio)
+	else
+	 tmpa(1:kgocart)=(1-yratio)*vgocart(int(x),int(y),1:kgocart)+ &
+	  yratio*vgocart(int(x),int(y)+1,1:kgocart)
+	endif  
 	 do k=1,kmax
 	  z=bndcoordx(i,j,m,k+2)
 	  zratio=z-int(z)
@@ -626,11 +660,6 @@
 	     enddo
 	    endif   
 	  endif
-	  if(nhalo.gt.nhalo_orig) then  ! fill the outter layer 
-	   do nthick=1,nhalo_orig-nhalo
-	     tmpbndx(1:imax,nhalo+nthick,1:kmax)=tmpbndx(1:imax,nhalo,1:kmax)
-	   enddo
-	  endif
 	  call check(nf90_put_var(ncid,idvar_tmp,tmpbndx))
 	  
 !! left/right
@@ -667,11 +696,6 @@
 	     enddo
 	    endif 
 	  endif
-	  if(nhalo.gt.nhalo_orig) then  ! fill the outter layer 
-	   do nthick=1,nhalo_orig-nhalo
-	     tmpbndy(nhalo+nthick,1:jmax,1:kmax)=tmpbndy(nhalo,1:jmax,1:kmax)
-	   enddo
-	  endif   
 	  call check(nf90_put_var(ncid,idvar_tmp,tmpbndy))         
 	 enddo
 	enddo
