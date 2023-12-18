@@ -46,5 +46,9 @@ if(BUILD_POST_STAT)
   find_package(Jasper REQUIRED)
 endif()
 
+if(CMAKE_Fortran_COMPILER_ID MATCHES "^(Intel)$")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -check all -ftrapuv")
+endif()
+
 # add project's subdirectories
 add_subdirectory(sorc)
