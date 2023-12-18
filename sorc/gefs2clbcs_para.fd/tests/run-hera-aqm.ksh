@@ -34,7 +34,6 @@ cat > gefs2lbc-nemsio.ini <<EOF
  mofile='gefs-input-$PDY/gfs.t00z.atmf','.nemsio'
  lbcfile='INPUT/gfs_bndy.tile7.','.nc'
  topofile='/scratch2/NCEPDEV/fv3-cam/noscrub/Youhua.Tang/lam-cmaq3/expt_dirs/test_update/orog/C401_oro_data.tile7.halo4.nc'
- myhalo=4
 &end
 
 Species converting Factor

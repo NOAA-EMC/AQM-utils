@@ -707,11 +707,11 @@ contains
     integer, intent ( in) :: status
 
     if(status /= nf90_noerr) then
-      print *, trim(nf90_strerror(status))
-      stop "Stopped"
+      print *, 'error in Netcdf file ',trim(nf90_strerror(status))
+      stop 788
     end if
     end subroutine check
-      end
+    end
 
 
       subroutine aq_blank(ntot,y)
