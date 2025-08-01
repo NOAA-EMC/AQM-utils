@@ -1,0 +1,12 @@
+[project]
+name = "aqm-data-sync"
+version = "0.0.1"
+description = "Synchronize AQM datasets with storage targets"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "Ben Koziol", email = "benjamin.koziol@noaa.gov" }
+]
+
+[project.scripts]
+aqm-data-sync = "aqm_data_sync.aqm_data_sync_cli:app"

@@ -1,0 +1,10 @@
+name: aqm-data-sync
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - typer
+  - pydantic
+  - pytest
+  - pytest-mock
+  - awscli
