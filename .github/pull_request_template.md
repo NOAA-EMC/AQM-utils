@@ -19,6 +19,7 @@
   - [ ] Orion
   - [ ] Hercules
   - [ ] Jet
+  - [ ] Gaea-C6
 
 ### Test cases: 
 <!-- Add 'x' inside the brackets (without space). -->
