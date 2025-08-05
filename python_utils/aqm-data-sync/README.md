@@ -11,6 +11,12 @@ conda env create -f environment.yml
 conda run -n aqm-data-sync pip install .
 ```
 
+# Testing
+
+```shell
+pytest test
+```
+
 # Usage
 
 ```shell

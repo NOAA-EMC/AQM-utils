@@ -21,7 +21,7 @@ class LoggerWrapper:
         self,
         msg,
         level=logging.INFO,
-        exc_info: Exception = None,
+        exc_info: Exception | None = None,
         stacklevel: int = 2,
     ):
         """
@@ -74,7 +74,9 @@ class LoggerWrapper:
             "loggers": {
                 _PROJECT_NAME: {
                     "handlers": ["default"],
-                    "level": getattr(logging, log_level.value.upper()),  # pylint: disable=no-member
+                    "level": getattr(
+                        logging, log_level.value.upper()
+                    ),  # pylint: disable=no-member
                 },
             },
         }

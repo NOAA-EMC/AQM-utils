@@ -34,7 +34,7 @@ class Context(BaseModel):
                 ("aws", "configure", "get", "default.s3.max_concurrent_requests")
             )
         except subprocess.CalledProcessError:
-            LOGGER("could not retrieve max_concurrent_requests", level=logging.WARN)
+            LOGGER("could not retrieve max_concurrent_requests", level=logging.WARNING)
             return None
         else:
             return int(raw_output)
@@ -84,6 +84,7 @@ class UseCaseAeromma(UseCase):
     @classmethod
     def _initialize_model_(cls, values: dict) -> dict:
         for key in ("first_cycle_date", "last_cycle_date"):
+            # Allow values to be initialized by the parent model with empty strings
             if values.get(key, "") is None:
                 values.pop(key)
         return values
@@ -142,7 +143,7 @@ class S3SyncRunner:
         while True:
             LOGGER(f"{ctr=}, {curr_cycle_date=}")
             if ctr > 1000:
-                LOGGER("", exc_info=ValueError(f"{ctr=} - don't be ridiculous"))
+                LOGGER("", exc_info=ValueError(f"{ctr=} - Exceeded max iterations"))
             include_templates = self._create_include_templates_for_cycle_date_(curr_cycle_date)
             if ctr == 0:
                 LOGGER("adding restart file download")
