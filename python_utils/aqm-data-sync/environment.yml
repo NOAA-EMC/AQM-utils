@@ -8,3 +8,5 @@ dependencies:
   - pytest
   - pytest-mock
   - awscli
+  - black
+  - mypy

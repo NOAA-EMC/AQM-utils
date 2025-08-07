@@ -36,7 +36,7 @@ class LoggerWrapper:
         """
         if exc_info is not None:
             level = logging.ERROR
-        self.logger.log(level, msg, exc_info=exc_info, stacklevel=stacklevel)
+        self._get_logger_().log(level, msg, exc_info=exc_info, stacklevel=stacklevel)
         if exc_info is not None and self.exit_on_error:
             raise exc_info
 
@@ -83,6 +83,11 @@ class LoggerWrapper:
         logging.config.dictConfig(logging_config)
         self.logger = logging.getLogger(_PROJECT_NAME)
         self("logging initialized")
+
+    def _get_logger_(self) -> logging.Logger:
+        if self.logger is None:
+            raise ValueError
+        return self.logger
 
 
 LOGGER = LoggerWrapper()

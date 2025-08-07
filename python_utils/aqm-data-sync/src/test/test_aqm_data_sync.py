@@ -12,14 +12,16 @@ def test_help() -> None:
     """Test that the help message can be displayed."""
     os.environ["TERMINAL_WIDTH"] = "100"
     cli_path = Path(__file__).parent.parent / "aqm_data_sync" / "aqm_data_sync_cli.py"
-    subprocess.check_call(["python", str(cli_path), "--help"])
+    for subcommand in ("time-varying", "srw-fixed"):
+        subprocess.check_call(["python", str(cli_path), subcommand, "--help"])
 
 
-def test_use_case(tmp_path: Path) -> None:
+def test_time_varying_use_case(tmp_path: Path) -> None:
     """Test the use case pathway for a snippet."""
     runner = CliRunner()
 
     args = [
+        "time-varying",
         "--use-case",
         UseCaseKey.AEROMMA.value,
         "--dst-dir",

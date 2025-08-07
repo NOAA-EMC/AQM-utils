@@ -1,9 +1,10 @@
 import datetime
 import logging
 import subprocess
+from abc import ABC, abstractmethod
 from enum import unique, StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar, Generic
 
 from pydantic import BaseModel, computed_field, model_validator
 
@@ -16,16 +17,12 @@ class UseCaseKey(StrEnum):
     AEROMMA = "AEROMMA"
 
 
-class Context(BaseModel):
+class AbstractContext(ABC, BaseModel):
     model_config = {"frozen": True}
-    first_cycle_date: datetime.datetime
     dst_dir: Path
-    fcst_hr: int = 0
-    last_cycle_date: datetime.datetime
-    s3_root: str = "s3://noaa-ufs-srw-pds/UFS-AQM"
+    s3_root: str = "s3://noaa-ufs-srw-pds"
     max_concurrent_requests: int | None = 3
     dry_run: bool = False
-    snippet: bool = False
 
     @computed_field
     def system_max_concurrent_requests(self) -> int | None:
@@ -39,6 +36,18 @@ class Context(BaseModel):
         else:
             return int(raw_output)
 
+
+class SRWFixedContext(AbstractContext):
+    s3_root: str = "s3://noaa-ufs-srw-pds"
+
+
+class TimeVaryingContext(AbstractContext):
+    first_cycle_date: datetime.datetime
+    fcst_hr: int = 0
+    last_cycle_date: datetime.datetime
+    s3_root: str = "s3://noaa-ufs-srw-pds/UFS-AQM"
+    snippet: bool = False
+
     @model_validator(mode="before")
     @classmethod
     def _initialize_model_(cls, values: dict) -> dict:
@@ -50,13 +59,13 @@ class Context(BaseModel):
         return values
 
     @model_validator(mode="after")
-    def _finalize_model_(self) -> "Context":
+    def _finalize_model_(self) -> "TimeVaryingContext":
         if self.last_cycle_date < self.first_cycle_date:
             raise ValueError("last_cycle_date must be >= first_cycle_date")
         return self
 
 
-class UseCase(Context):
+class UseCase(TimeVaryingContext):
     key: UseCaseKey
 
     @classmethod
@@ -90,9 +99,12 @@ class UseCaseAeromma(UseCase):
         return values
 
 
-class S3SyncRunner:
+T = TypeVar("T", bound=AbstractContext)
 
-    def __init__(self, context: Context) -> None:
+
+class AbstractS3SyncRunner(ABC, Generic[T]):
+
+    def __init__(self, context: T) -> None:
         self._ctx = context
 
     def run(self) -> None:
@@ -136,6 +148,32 @@ class S3SyncRunner:
         cmd.append(str(self._ctx.dst_dir))
         return tuple(cmd)
 
+    @abstractmethod
+    def _update_include_templates_(self, cmd: list[str]) -> None:
+        pass
+
+    def _handle_max_concurrent_request_reset_(self):
+        if self._ctx.system_max_concurrent_requests is not None:
+            LOGGER("resetting max_concurrent_requests")
+            subprocess.check_call(
+                (
+                    "aws",
+                    "configure",
+                    "set",
+                    "default.s3.max_concurrent_requests",
+                    str(self._ctx.system_max_concurrent_requests),
+                )
+            )
+
+
+class SRWFixedSyncRunner(AbstractS3SyncRunner[SRWFixedContext]):
+
+    def _update_include_templates_(self, cmd: list[str]) -> None:
+        cmd += ["--include", "develop-20250702/fix/*"]
+
+
+class TimeVaryingSyncRunner(AbstractS3SyncRunner[TimeVaryingContext]):
+
     def _update_include_templates_(self, cmd: list[str]) -> None:
         restart_cycle_date = self._ctx.first_cycle_date - datetime.timedelta(days=1)
         curr_cycle_date = self._ctx.first_cycle_date
@@ -144,18 +182,24 @@ class S3SyncRunner:
             LOGGER(f"{ctr=}, {curr_cycle_date=}")
             if ctr > 1000:
                 LOGGER("", exc_info=ValueError(f"{ctr=} - Exceeded max iterations"))
-            include_templates = self._create_include_templates_for_cycle_date_(curr_cycle_date)
+            include_templates = self._create_include_templates_for_cycle_date_(
+                curr_cycle_date
+            )
             if ctr == 0:
                 LOGGER("adding restart file download")
-                include_templates.append(f"RESTART/*{restart_cycle_date.strftime('%Y%m%d')}*")
+                include_templates.append(
+                    f"RESTART/*{restart_cycle_date.strftime('%Y%m%d')}*"
+                )
             for it in include_templates:
                 cmd += ["--include", it]
-            if curr_cycle_date == self._ctx.last_cycle_date or self._ctx.snippet is True:
+            if (
+                curr_cycle_date == self._ctx.last_cycle_date
+                or self._ctx.snippet is True
+            ):
                 LOGGER("finished adding include filters")
                 break
             curr_cycle_date += datetime.timedelta(days=1)
             ctr += 1
-        return cmd
 
     def _create_include_templates_for_cycle_date_(
         self, curr_cycle_date: datetime.datetime
@@ -181,16 +225,3 @@ class S3SyncRunner:
                 f"GEFS_Aerosol/{curr_cycle_date_str}/00/gfs.t00z.atmf{fhr:03}.nemsio"
             ]
         return include_templates
-
-    def _handle_max_concurrent_request_reset_(self):
-        if self._ctx.system_max_concurrent_requests is not None:
-            LOGGER("resetting max_concurrent_requests")
-            subprocess.check_call(
-                (
-                    "aws",
-                    "configure",
-                    "set",
-                    "default.s3.max_concurrent_requests",
-                    str(self._ctx.system_max_concurrent_requests),
-                )
-            )
