@@ -38,7 +38,7 @@ class AbstractContext(ABC, BaseModel):
 
 
 class SRWFixedContext(AbstractContext):
-    s3_root: str = "s3://noaa-ufs-srw-pds"
+    s3_root: str = "s3://noaa-ufs-srw-pds/develop-20250702"
 
 
 class TimeVaryingContext(AbstractContext):
@@ -169,7 +169,7 @@ class AbstractS3SyncRunner(ABC, Generic[T]):
 class SRWFixedSyncRunner(AbstractS3SyncRunner[SRWFixedContext]):
 
     def _update_include_templates_(self, cmd: list[str]) -> None:
-        cmd += ["--include", "develop-20250702/fix/*"]
+        cmd += ["--include", "fix/*"]
 
 
 class TimeVaryingSyncRunner(AbstractS3SyncRunner[TimeVaryingContext]):

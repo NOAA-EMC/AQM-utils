@@ -20,11 +20,18 @@ pytest test
 # Usage
 
 ```shell
-conda run -n aqm-data-sync aqm-data-sync --help
+Usage: aqm_data_sync_cli.py [OPTIONS] COMMAND [ARGS]...
 
-Usage: aqm-data-sync [OPTIONS]
+┌─ Commands ───────────────────────────────────────────────────────────────────────────────────────┐
+│ time-varying   Download time varying input data for UFS-AQM.                                     │
+│ srw-fixed      Download SRW fixed data.                                                          │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
-╭─ Options ────────────────────────────────────────────────────────────────────────────────────────╮
+ Usage: aqm_data_sync_cli.py time-varying [OPTIONS]
+
+ Download time varying input data for UFS-AQM.
+
+┌─ Options ────────────────────────────────────────────────────────────────────────────────────────┐
 │ *  --dst-dir                        PATH                 Destination directory for sync.         │
 │                                                          [default: None]                         │
 │                                                          [required]                              │
@@ -36,19 +43,25 @@ Usage: aqm-data-sync [OPTIONS]
 │                                                          not provided, defaults to 24 hours      │
 │                                                          after --first-cycle-date.               │
 │                                                          [default: None]                         │
-│    --s3-root                        TEXT                 S3 root path.                           │
-│                                                          [default:                               │
-│                                                          s3://noaa-ufs-srw-pds/UFS-AQM]          │
-│    --max-concurrent-requests        INTEGER              Max concurrent requests. [default: 3]   │
-│    --dry-run                                             Dry run.                                │
 │    --use-case                       [UNDEFINED|AEROMMA]  Use case. [default: UNDEFINED]          │
+│    --max-concurrent-requests        INTEGER              Maximum number of concurrent requests.  │
+│                                                          [default: 5]                            │
+│    --dry-run                                             Dry run. Nothing will be materially     │
+│                                                          synchronized.                           │
 │    --snippet                                             If provided, download data for a single │
 │                                                          forecast cycle loop (e.g. one day).     │
-│    --install-completion                                  Install completion for the current      │
-│                                                          shell.                                  │
-│    --show-completion                                     Show completion for the current shell,  │
-│                                                          to copy it or customize the             │
-│                                                          installation.                           │
 │    --help                                                Show this message and exit.             │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+ Usage: aqm_data_sync_cli.py srw-fixed [OPTIONS]
+
+ Download SRW fixed data.
+
+┌─ Options ────────────────────────────────────────────────────────────────────────────────────────┐
+│ *  --dst-dir                        PATH     Destination directory for sync. [default: None]     │
+│                                              [required]                                          │
+│    --max-concurrent-requests        INTEGER  Maximum number of concurrent requests. [default: 5] │
+│    --dry-run                                 Dry run. Nothing will be materially synchronized.   │
+│    --help                                    Show this message and exit.                         │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
