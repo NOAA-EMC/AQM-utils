@@ -205,6 +205,8 @@ class TestSRWFixedSyncRunner:
             "*",
             "--include",
             "fix/*",
+            "--include",
+            "NaturalEarth/*",
             "s3://noaa-ufs-srw-pds/develop-20250702",
             str(dst_dir),
         )

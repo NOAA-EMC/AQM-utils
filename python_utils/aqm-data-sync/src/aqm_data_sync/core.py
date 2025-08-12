@@ -169,7 +169,7 @@ class AbstractS3SyncRunner(ABC, Generic[T]):
 class SRWFixedSyncRunner(AbstractS3SyncRunner[SRWFixedContext]):
 
     def _update_include_templates_(self, cmd: list[str]) -> None:
-        cmd += ["--include", "fix/*"]
+        cmd += ["--include", "fix/*", "--include", "NaturalEarth/*"]
 
 
 class TimeVaryingSyncRunner(AbstractS3SyncRunner[TimeVaryingContext]):
