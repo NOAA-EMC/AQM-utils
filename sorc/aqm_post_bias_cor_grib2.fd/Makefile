@@ -18,7 +18,7 @@
 #
 #---------------------------------------------------------------------------
 
-Prg      =  aqm_post_bias_cor_grib2_1144
+Prg      =  aqm_post_bias_cor_grib2_793
 
 # Library directories.
 

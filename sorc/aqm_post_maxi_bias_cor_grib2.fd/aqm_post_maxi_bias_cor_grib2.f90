@@ -12,7 +12,7 @@
 !                                  max_1hr_o3 and max_8hr_o3
 !  Jianping Huang and Kai Wang   11/22/2022   support AQMv7.0 (ufs-aqm) implementation
 !------------------------------------------------------------------------------
-program aqm_post_maxi_bias_cor_grib2_1144
+program aqm_post_maxi_bias_cor_grib2_793
 
    use config, only : dp
    use read__netcdf_var
@@ -26,7 +26,7 @@ program aqm_post_maxi_bias_cor_grib2_1144
    						!   fail (stdlit)
 ! Local variables.
 
-   character outfile*200,grib_id*4
+   character outfile*200,grib_id*3
    integer nhours,nhours8, nt,nowtime8,total_day
    integer dims_in4(3), dims_in3(3)
 !   logical fail1, fail2
@@ -43,7 +43,7 @@ program aqm_post_maxi_bias_cor_grib2_1144
    integer    i, j
 ! for grib2 by JP
 !   integer, parameter   :: max_bytes=20000000
-   integer, parameter   :: nx=1128,ny=698
+   integer, parameter   :: nx=775,ny=488
    integer, parameter   :: max_bytes=nx*ny*4
    integer, parameter   :: markutc=05
    integer, parameter   :: ncmaq=4
@@ -310,7 +310,7 @@ program aqm_post_maxi_bias_cor_grib2_1144
 !-- set file unit
 
    ifilw1=51
-   write(grib_id,'(i4.4)')id_gribdomain
+   write(grib_id,'(i3.3)')id_gribdomain
    call baopen(ifilw1,trim(outfile)//'.'//grib_id//&
              '.grib2',ierr)
    if(ierr.ne.0) then
@@ -368,9 +368,9 @@ program aqm_post_maxi_bias_cor_grib2_1144
       nowtime=(ihour+1)*10000
 !      do nt=1,nhours
 
-      GRID=1144
-      im=1128
-      jm=698
+      GRID=793
+      im=775
+      jm=488
       jf=im*jm
 !
       cgrib1=''
@@ -695,7 +695,7 @@ program aqm_post_maxi_bias_cor_grib2_1144
 
    print*,"it is done ! jphuang"
 
-end program aqm_post_maxi_bias_cor_grib2_1144
+end program aqm_post_maxi_bias_cor_grib2_793
 
 !-----------------------------------------------------------------------
        subroutine g2getbits(ibm,scl,len,bmap,g,ibs,ids,nbits)
