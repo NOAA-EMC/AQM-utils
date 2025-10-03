@@ -587,7 +587,7 @@
 
 
 ! begin output
-     fillval=0./0.
+     fillval=-9e33 !revert to production value
      print*,'start overwrite'
       do L=1,noutbnd       ! check if gocart supplies all species, otherwise do not overwrite the existing aerosol
 

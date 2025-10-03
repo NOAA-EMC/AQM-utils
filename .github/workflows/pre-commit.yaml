@@ -21,8 +21,3 @@ jobs:
           pip install pre-commit
       - name: Run pre-commit
         run: pre-commit run --all-files
-      # - name: Install fortitude
-      #   run: pip install fortitude
-      # - name: Run fortitude lint on Fortran files
-      #   run: |
-      #     fortitude lib/**/*.[fF]90 lib/**/*.[fF] lib/**/*.[fF]77 lib/**/*.[fF]OR

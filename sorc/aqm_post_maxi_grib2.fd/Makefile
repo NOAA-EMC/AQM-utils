@@ -19,7 +19,7 @@
 #
 #---------------------------------------------------------------------------
 
-Prg     =  aqm_post_maxi_grib2_1144
+Prg     =  aqm_post_maxi_grib2_793
 
 # Library directories.
 
