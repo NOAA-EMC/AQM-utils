@@ -1,6 +1,7 @@
 # This is the cmake build file for the sorc directory in AQM-utils
 
 option(GEFS2LBCS "Enable building gefs2lbcs.fd" ON)
+option(GCAFS2LBCS "Enable building gcafs2lbcs_para.fd" ON)
 option(AQM_POST_GRIB2 "Enable building aqm_post_grib2.fd" ON)
 option(AQM_POST_MAXI_GRIB2 "Enable building aqm_post_maxi_grib2.fd" ON)
 option(AQM_POST_BIAS_COR_GRIB2 "Enable building aqm_post_bias_cor_grib2.fd" ON)
@@ -11,6 +12,10 @@ option(CONVERT_AIRNOW_CSV "Enable building convert_airnow_csv.fd" ON)
 
 if(GEFS2LBCS)
   add_subdirectory(gefs2lbcs_para.fd)
+endif()
+
+if(GCAFS2LBCS)
+add_subdirectory(gcafs2lbcs_para.fd)
 endif()
 
 if (BUILD_POST_STAT)
