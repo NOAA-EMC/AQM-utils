@@ -1,0 +1,41 @@
+[project]
+name = "aqm-utils"
+version = "0.1.0"
+description = "Utilities for AQM (Air Quality Model) data processing"
+authors = [
+    { name = "Aero", email = "aero@example.com" }
+]
+dependencies = [
+    "xarray",
+    "xregrid",
+    "esmpy",
+    "numpy",
+    "dask",
+    "netCDF4",
+    "scipy",
+    "cf-xarray",
+    "grib2io",
+    "pyyaml",
+    "requests",
+    "tqdm",
+    "cartopy",
+    "matplotlib",
+    "hvplot",
+    "geoviews",
+]
+requires-python = ">=3.9"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "NPY"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "python_utils/gdas-cmaqprep/tests"]
+python_files = "test_*.py"

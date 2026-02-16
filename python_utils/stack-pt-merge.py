@@ -114,7 +114,9 @@ class Date:
             try:
                 dt_ = datetime.strptime(dt_, fmt)
             except ValueError as e:
-                raise ValueError(f"{dt_!r} (from input {dt!r}) failed to parse as a {fmt} datetime") from e
+                raise ValueError(
+                    f"{dt_!r} (from input {dt!r}) failed to parse as a {fmt} datetime"
+                ) from e
         else:
             dt_ = dt
 
@@ -258,7 +260,9 @@ class SectorFiles:
             # TODO: check that the one we are dropping here is indeed one of those two?
 
             s_dates = "\n".join(f"- {d}" for d in dates_m_nh)
-            log.warning(f"dropping the last of these non-holiday dates in order to have 4 only:\n{s_dates}")
+            log.warning(
+                f"dropping the last of these non-holiday dates in order to have 4 only:\n{s_dates}"
+            )
             dates_m_nh = dates_m_nh[:-1]
             fps_m_nh = fps_m_nh[:-1]
 
@@ -328,7 +332,9 @@ class SectorFiles:
                     iwds_r = [dates_m_nh[i].dow for i in inds]
                     if iwd_t in iwds_r:
                         best = iws_rel_r.index(iw_rel) + iwds_r.index(iwd_t)
-                        log.debug(f"match: ind={best}, iw_r={iws_r[best]}, iw_rel_r={iws_rel_r[best]}")
+                        log.debug(
+                            f"match: ind={best}, iw_r={iws_r[best]}, iw_rel_r={iws_rel_r[best]}"
+                        )
                         break
                 else:
                     raise Exception(f"Failed to find good match for {target}.")
@@ -355,8 +361,12 @@ class SectorFiles:
                 fp_r = fps_m_nh[i]
 
             else:
-                s_fps = "\n".join(f"- {date} {fp.as_posix()}" for date, fp in zip(dates_m_nh, fps_m_nh))
-                raise Exception(f"Unexpected len-{len(fps_m_nh)} file set for target {target}:\n{s_fps}")
+                s_fps = "\n".join(
+                    f"- {date} {fp.as_posix()}" for date, fp in zip(dates_m_nh, fps_m_nh)
+                )
+                raise Exception(
+                    f"Unexpected len-{len(fps_m_nh)} file set for target {target}:\n{s_fps}"
+                )
 
         assert d_r is not None and fp_r is not None
 
@@ -548,13 +558,14 @@ def main(
                     v_out = ds_out.createVariable(vn, "S1", (POINT_DIM_NAME, "nchar"))
                     v_out.long_name = "Group ID"
                     v_out.description = (
-                        "Sector time group (daily, 4-per-month, or 4-per-month + holidays) " "and reference year date"
+                        "Sector time group (daily, 4-per-month, or 4-per-month + holidays) "
+                        "and reference year date"
                     )
                     v_out[:] = ""
                 else:
                     v_out = ds_out.variables[vn]
                 x = np.full((100,), "", "S1")
-                x[: len(sg_id)] = [np.string_(c) for c in sg_id]
+                x[: len(sg_id)] = [np.bytes_(c) for c in sg_id]
                 v_out[point_slice, :] = x
 
             if not stack_groups_only:
@@ -631,7 +642,10 @@ def parse_args(args=None):
         "--nstep",
         type=int,
         default=NSTEP_DEFAULT,
-        help=("Desired number of time steps for the output file (including start). " f"(default: {NSTEP_DEFAULT})"),
+        help=(
+            "Desired number of time steps for the output file (including start). "
+            f"(default: {NSTEP_DEFAULT})"
+        ),
     )
     parser.add_argument(
         "-i",

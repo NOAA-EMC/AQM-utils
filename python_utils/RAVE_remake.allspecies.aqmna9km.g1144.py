@@ -1,135 +1,101 @@
 #!/usr/bin/env python3
+"""
+Handle fire emission (RAVE) to 9-km NA domain using xarray and xregrid.
+"""
 
-# Python script to handle fire emission (RAVE) to 9-km NA domain
+from __future__ import annotations
 
 import argparse
+import logging
 import sys
+from datetime import datetime
+from typing import List, Optional
 
-import ESMF
-import numpy as np
 import xarray as xr
-from netCDF4 import Dataset
+from xregrid import Regridder
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 
-def RAVE_remake_allspecies(date, cyc, src_map, tgt_map, weight_file, input_fire, output_fire):
+def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+    """
+    Parse command line arguments for RAVE remake.
 
-    year = date[0:4]
-    mm = date[4:6]
-    dd = date[6:8]
+    Parameters
+    ----------
+    argv : List[str], optional
+        Command line arguments.
 
+    Returns
+    -------
+    argparse.Namespace
+        Parsed arguments.
+    """
+    parser = argparse.ArgumentParser(description="Handle fire emission data using xregrid.")
+
+    parser.add_argument("-d", "--date", required=True, help="Date for regridding (YYYYMMDD).")
+    parser.add_argument("-c", "--cyc", required=True, help="Cycle hour (HH).")
+    parser.add_argument("-s", "--src_map", required=True, help="Source map file.")
+    parser.add_argument("-t", "--tgt_map", required=True, help="Target map file.")
+    parser.add_argument("-w", "--weight_file", required=True, help="Regridding weight file.")
+    parser.add_argument("-i", "--input_fire", required=True, help="Path to input RAVE fire data.")
+    parser.add_argument("-o", "--output_fire", required=True, help="Path to output data file.")
+
+    return parser.parse_args(argv)
+
+
+def RAVE_remake_allspecies(
+    date: str,
+    cyc: str,
+    src_map: str,
+    tgt_map: str,
+    weight_file: str,
+    input_fire: str,
+    output_fire: str,
+) -> None:
+    """
+    Process RAVE fire emissions and regrid to target domain.
+
+    Parameters
+    ----------
+    date : str
+        Date in YYYYMMDD format.
+    cyc : str
+        Cycle hour in HH format.
+    src_map : str
+        Path to source grid map.
+    tgt_map : str
+        Path to target grid map.
+    weight_file : str
+        Path to ESMF weights file.
+    input_fire : str
+        Path to input RAVE fire data.
+    output_fire : str
+        Path to save processed data.
+    """
+    logger.info(f"Processing RAVE remake for {date} cycle {cyc}")
+
+    year, mm, dd = date[0:4], date[4:6], date[6:8]
+
+    # Load datasets
     ds_in = xr.open_dataset(src_map)
     ds_out = xr.open_dataset(tgt_map)
-
-    src_latt = ds_in["grid_latt"]
-    src_lont2 = ds_in["grid_lont"]
-    src_lont = xr.where(src_lont2 > 0.0, src_lont2, src_lont2 + 360.0)
-    src_lat = ds_in["grid_lat"]
-    src_lon = ds_in["grid_lon"]
-
-    tgt_latt = ds_out["grid_latt"]
-    tgt_lont = ds_out["grid_lont"]
-    tgt_lat = ds_out["grid_lat"]
-    tgt_lon = ds_out["grid_lon"]
-
-    src_shape = src_latt.shape
-    tgt_shape = tgt_latt.shape
-
-    srcgrid = ESMF.Grid(
-        np.array(src_shape),
-        staggerloc=[ESMF.StaggerLoc.CENTER, ESMF.StaggerLoc.CORNER],
-        coord_sys=ESMF.CoordSys.SPH_DEG,
-    )
-    tgtgrid = ESMF.Grid(
-        np.array(tgt_shape),
-        staggerloc=[ESMF.StaggerLoc.CENTER, ESMF.StaggerLoc.CORNER],
-        coord_sys=ESMF.CoordSys.SPH_DEG,
-    )
-
-    src_cen_lon = srcgrid.get_coords(0, staggerloc=ESMF.StaggerLoc.CENTER)
-    src_cen_lat = srcgrid.get_coords(1, staggerloc=ESMF.StaggerLoc.CENTER)
-
-    tgt_cen_lon = tgtgrid.get_coords(0, staggerloc=ESMF.StaggerLoc.CENTER)
-    tgt_cen_lat = tgtgrid.get_coords(1, staggerloc=ESMF.StaggerLoc.CENTER)
-
-    src_cen_lon[...] = src_lont
-    src_cen_lat[...] = src_latt
-
-    tgt_cen_lon[...] = tgt_lont
-    tgt_cen_lat[...] = tgt_latt
-
-    src_con_lon = srcgrid.get_coords(0, staggerloc=ESMF.StaggerLoc.CORNER)
-    src_con_lat = srcgrid.get_coords(1, staggerloc=ESMF.StaggerLoc.CORNER)
-
-    tgt_con_lon = tgtgrid.get_coords(0, staggerloc=ESMF.StaggerLoc.CORNER)
-    tgt_con_lat = tgtgrid.get_coords(1, staggerloc=ESMF.StaggerLoc.CORNER)
-
-    src_con_lon[...] = src_lon
-    src_con_lat[...] = src_lat
-
-    tgt_con_lon[...] = tgt_lon
-    tgt_con_lat[...] = tgt_lat
-
     ds_togid = xr.open_dataset(input_fire)
+
+    # Wrap longitudes if necessary
+    src_lont = xr.where(ds_in["grid_lont"] > 0.0, ds_in["grid_lont"], ds_in["grid_lont"] + 360.0)
+    ds_in = ds_in.assign_coords(lat=ds_in["grid_latt"], lon=src_lont)
+    ds_out = ds_out.assign_coords(lat=ds_out["grid_latt"], lon=ds_out["grid_lont"])
+
+    # Create regridder
+    regridder = Regridder(ds_in, ds_out, weights=weight_file)
+
     area = ds_togid["area"]
-    QA = ds_togid["QA"]
+    qa = ds_togid["QA"]
     tgt_area = ds_out["area"]
-    # tgt_latt = ds_togid['grid_latt']
-    # tgt_lont = ds_togid['grid_lont']
     land_cover = ds_out["land_cover"]
-
-    srcfield = ESMF.Field(srcgrid, name="test")
-    tgtfield = ESMF.Field(tgtgrid, name="test")
-
-    srcfield.data[...] = QA[0, :, :]
-
-    regridder = ESMF.RegridFromFile(srcfield, tgtfield, weight_file)
-
-    fout = Dataset(output_fire, "w")
-    fout.createDimension("Time", 24)
-    fout.createDimension("xFRP", 1152)
-    fout.createDimension("yFRP", 768)
-
-    setattr(fout, "PRODUCT_ALGORITHM_VERSION", "Beta")
-    setattr(fout, "TIME_RANGE", "72 hours")
-    setattr(fout, r"RangeBeginningDate\(YYYY-MM-DD\)", year + "-" + mm + "-" + dd)
-    setattr(fout, r"RangeBeginningTime\(UTC-hour\)", cyc)
-    setattr(fout, r"WestBoundingCoordinate\(degree\)", "152.859f")
-    setattr(fout, r"EastBoundingCoordinate\(degree\)", "331.141f")
-    setattr(fout, r"NorthBoundingCoordinate\(degree\)", "81.0247f")
-    setattr(fout, r"SouthBoundingCoordinate\(degree\)", "7.81713f")
-
-    Store_latlon_by_Level(
-        fout,
-        "Latitude",
-        tgt_latt,
-        "cell center latitude",
-        "degrees_north",
-        "2D",
-        "-9999.f",
-        "1.f",
-    )
-    Store_latlon_by_Level(
-        fout,
-        "Longitude",
-        tgt_lont,
-        "cell center longitude",
-        "degrees_east",
-        "2D",
-        "-9999.f",
-        "1.f",
-    )
-    Store_latlon_by_Level(
-        fout,
-        "land_cover",
-        land_cover,
-        "land cover type",
-        "unitless",
-        "2D",
-        "-9999.f",
-        "1.f",
-    )
-
-    # hrs = np.linspace(0, 23, num=24)
 
     vars_emis = [
         "PM25_scaled",
@@ -143,183 +109,106 @@ def RAVE_remake_allspecies(date, cyc, src_map, tgt_map, weight_file, input_fire,
         "FRP_MEAN",
     ]
 
+    output_vars = {}
+
     for svar in vars_emis:
+        logger.info(f"Regridding {svar}")
 
-        # print(svar)
+        # Prepare source data
+        da_in = ds_togid[svar].fillna(0) / area
+        da_in = xr.where(qa > 1, da_in, 0.0)
 
-        srcfield = ESMF.Field(srcgrid, name=svar)
-        tgtfield = ESMF.Field(tgtgrid, name=svar)
+        # Apply regridding
+        da_out = regridder(da_in)
 
+        # Scale and handle specific variables
         if svar == "FRP_MEAN":
-            Store_by_Level(fout, "MeanFRP", "Mean Fire Radiative Power", "MW", "3D", "0.f", "1.f")
+            da_out = da_out * (tgt_area * 1.0e-6)
+            var_name = "MeanFRP"
+            long_name = "Mean Fire Radiative Power"
+            units = "MW"
         elif svar == "PM25_scaled":
-            Store_by_Level(
-                fout,
-                "PM2.5",
-                svar + " Biomass Emissions",
-                "kg m-2 s-1",
-                "3D",
-                "0.f",
-                "1.f",
-            )
+            da_out = da_out * 1.0e-6 / 3600
+            var_name = "PM2.5"
+            long_name = "PM2.5 Biomass Emissions"
+            units = "kg m-2 s-1"
         elif svar == "BC_scaled":
-            Store_by_Level(fout, "BC", "BC Biomass Emissions", "kg m-2 s-1", "3D", "0.f", "1.f")
+            da_out = da_out * 1.0e-6 / 3600
+            var_name = "BC"
+            long_name = "BC Biomass Emissions"
+            units = "kg m-2 s-1"
         elif svar == "OC_scaled":
-            Store_by_Level(fout, "OC", "OC Biomass Emissions", "kg m-2 s-1", "3D", "0.f", "1.f")
+            da_out = da_out * 1.0e-6 / 3600
+            var_name = "OC"
+            long_name = "OC Biomass Emissions"
+            units = "kg m-2 s-1"
         else:
-            Store_by_Level(
-                fout,
-                svar,
-                svar + " Biomass Emissions",
-                "kg m-2 s-1",
-                "3D",
-                "0.f",
-                "1.f",
-            )
+            da_out = da_out * 1.0e-6 / 3600
+            var_name = svar
+            long_name = f"{svar} Biomass Emissions"
+            units = "kg m-2 s-1"
 
-        src_rate = ds_togid[svar].fillna(0) / area
-        src_QA = xr.where(QA > 1, src_rate, 0.0)  # ,keep_attrs=True)
+        da_out.attrs.update(
+            {
+                "long_name": long_name,
+                "units": units,
+                "standard_name": var_name,
+                "coordinates": "Time Latitude Longitude",
+            }
+        )
+        output_vars[var_name] = da_out
 
-        # print(np.sum(src_QA))
+    # Create output dataset
+    ds_final = xr.Dataset(output_vars)
 
-        for hr in range(0, 24, 1):
-            # print(hr)
-            src_cut = src_QA[hr, :, :]
-
-            srcfield.data[...] = src_cut
-
-            # print('=============before regridding==========='+svar)
-            # total_mass=np.sum(src_cut*area)
-            # print(total_mass)
-
-            tgtfield = regridder(srcfield, tgtfield)
-
-            if svar == "FRP_MEAN":
-                tgt_rate = tgtfield.data * (tgt_area * 1.0e-6)
-                fout.variables["MeanFRP"][hr, :, :] = tgt_rate
-                # print('=============after regridding==========='+svar)
-                # total_mass=np.sum(tgt_rate)
-                # print(total_mass)
-            elif svar == "PM25_scaled":
-                tgt_rate = tgtfield.data * 1.0e-6 / 3600
-                fout.variables["PM2.5"][hr, :, :] = tgt_rate
-                # print('=============after regridding==========='+svar)
-                # total_mass=np.sum(tgt_rate*tgt_area*3600)
-                # print(total_mass)
-            elif svar == "BC_scaled":
-                tgt_rate = tgtfield.data * 1.0e-6 / 3600
-                fout.variables["BC"][hr, :, :] = tgt_rate
-                # print('=============after regridding==========='+svar)
-                # total_mass=np.sum(tgt_rate*tgt_area*3600)
-                # print(total_mass)
-            elif svar == "OC_scaled":
-                tgt_rate = tgtfield.data * 1.0e-6 / 3600
-                fout.variables["OC"][hr, :, :] = tgt_rate
-                # print('=============after regridding==========='+svar)
-                # total_mass=np.sum(tgt_rate*tgt_area*3600)
-                # print(total_mass)
-            else:
-                tgt_rate = tgtfield.data * 1.0e-6 / 3600
-                fout.variables[svar][hr, :, :] = tgt_rate
-                # print('=============after regridding==========='+svar)
-                # total_mass=np.sum(tgt_rate*tgt_area*3600)
-                # print(total_mass)
-
-    fout.close()
-
-
-def Store_time_by_Level(fout, varname, var, long_name, yr, mm, dd, cyc, DATE1):
-    if varname == "time":
-        var_out = fout.createVariable(varname, "f4", ("Time",))
-        var_out.long_name = long_name
-        var_out.standard_name = long_name
-        fout.variables[varname][:] = var
-        var_out.units = "hours since " + yr + "-" + mm + "-" + dd + " " + cyc + ":00:00"
-        var_out.calendar = "gregorian"
-        var_out.axis = "T"
-        var_out.time_increment = "010000"
-        var_out.begin_date = DATE1
-        var_out.begin_time = "060000"
-
-
-def Store_latlon_by_Level(fout, varname, var, long_name, units, dim, fval, sfactor):
-    if dim == "2D":
-        var_out = fout.createVariable(varname, "f4", ("yFRP", "xFRP"))
-        var_out.units = units
-        var_out.long_name = long_name
-        var_out.standard_name = varname
-        fout.variables[varname][:] = var
-        var_out.FillValue = fval
-        var_out.coordinates = "Latitude Longitude"
-
-
-def Store_by_Level(fout, varname, long_name, units, dim, fval, sfactor):
-    if dim == "3D":
-        var_out = fout.createVariable(varname, "f4", ("Time", "yFRP", "xFRP"))
-        var_out.units = units
-        var_out.long_name = long_name
-        var_out.standard_name = long_name
-        var_out.FillValue = fval
-        var_out.coordinates = "Time Latitude Longitude"
-
-
-def parse_args(argv):
-
-    parser = argparse.ArgumentParser(description="Handle fire emission data.")
-
-    parser.add_argument(
-        "-d",
-        "--date",
-        dest="date",
-        required=True,
-        help="Date for regridding.",
+    # Add coordinate variables
+    ds_final["Latitude"] = ds_out["grid_latt"]
+    ds_final["Latitude"].attrs.update(
+        {
+            "units": "degrees_north",
+            "long_name": "cell center latitude",
+            "standard_name": "Latitude",
+        }
     )
-    parser.add_argument(
-        "-c",
-        "--cyc",
-        dest="cyc",
-        required=True,
-        help="Cycle hour.",
+
+    ds_final["Longitude"] = ds_out["grid_lont"]
+    ds_final["Longitude"].attrs.update(
+        {
+            "units": "degrees_east",
+            "long_name": "cell center longitude",
+            "standard_name": "Longitude",
+        }
     )
-    parser.add_argument(
-        "-s",
-        "--src_map",
-        dest="src_map",
-        required=True,
-        help="source map.",
+
+    ds_final["land_cover"] = land_cover
+    ds_final["land_cover"].attrs.update(
+        {
+            "units": "unitless",
+            "long_name": "land cover type",
+            "standard_name": "land_cover",
+        }
     )
-    parser.add_argument(
-        "-t",
-        "--tgt_map",
-        dest="tgt_map",
-        required=True,
-        help="target map.",
+
+    # Global attributes
+    ds_final.attrs.update(
+        {
+            "PRODUCT_ALGORITHM_VERSION": "Beta",
+            "TIME_RANGE": "72 hours",
+            "RangeBeginningDate(YYYY-MM-DD)": f"{year}-{mm}-{dd}",
+            "RangeBeginningTime(UTC-hour)": cyc,
+            "WestBoundingCoordinate(degree)": "152.859f",
+            "EastBoundingCoordinate(degree)": "331.141f",
+            "NorthBoundingCoordinate(degree)": "81.0247f",
+            "SouthBoundingCoordinate(degree)": "7.81713f",
+            "history": f"Created on {datetime.now().isoformat()} using xregrid and xarray",
+        }
     )
-    parser.add_argument(
-        "-w",
-        "--weight_file",
-        dest="weight_file",
-        required=True,
-        help="weight file.",
-    )
-    parser.add_argument(
-        "-i",
-        "--input_fire",
-        dest="input_fire",
-        required=True,
-        help="Path to the RAVE fire data file.",
-    )
-    parser.add_argument(
-        "-o",
-        "--output_fire",
-        dest="output_fire",
-        required=True,
-        help="Path to the output data file.",
-    )
-    return parser.parse_args(argv)
+
+    # Write output
+    logger.info(f"Writing output to {output_fire}")
+    ds_final.to_netcdf(output_fire)
 
 
-# Main call =====================================================
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
     RAVE_remake_allspecies(

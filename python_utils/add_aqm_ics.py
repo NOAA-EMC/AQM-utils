@@ -32,7 +32,9 @@ def add_aqm_tracers_ics(fv_tracer_file, wrk_ic_file):
     gfs_atm_attr_source = gfs_atm.attrs["source"]
 
     # Remove time dimension and microphysics tracers from previous cycle's restart file
-    ds_out = fv_tracer.drop({"Time", "graupel", "ice_wat", "liq_wat", "o3mr", "rainwat", "snowwat", "sphum"})
+    ds_out = fv_tracer.drop(
+        {"Time", "graupel", "ice_wat", "liq_wat", "o3mr", "rainwat", "snowwat", "sphum"}
+    )
 
     ds_out = ds_out.squeeze("Time")
 
@@ -84,7 +86,9 @@ def parse_args(argv):
         help="Tracer file.",
     )
 
-    parser.add_argument("-c", "--wrk_ic_file", dest="wrk_ic_file", required=True, help="FV3 IC file.")
+    parser.add_argument(
+        "-c", "--wrk_ic_file", dest="wrk_ic_file", required=True, help="FV3 IC file."
+    )
 
     return parser.parse_args(argv)
 
