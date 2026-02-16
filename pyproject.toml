@@ -30,8 +30,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.ruff]
-line-length = 100
+line-length = 132
 target-version = "py39"
+extend-exclude = ["extern"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "NPY"]

@@ -30,9 +30,7 @@ def append_chem_lbc(chem_fp, files, *, rm=False):
             # dims
             for name, dimension in met.dimensions.items():
                 if name in dims_needed:
-                    ds.createDimension(
-                        name, len(dimension) if not dimension.isunlimited() else None
-                    )
+                    ds.createDimension(name, len(dimension) if not dimension.isunlimited() else None)
 
             # variables
             for name in met_names:
@@ -88,10 +86,7 @@ def parse_args(argv=None):
     parser.add_argument(
         "--rm",
         action="store_true",
-        help=(
-            "Create new files with chem vars removed instead (for testing). "
-            "They will have stem suffix `_clean`."
-        ),
+        help=("Create new files with chem vars removed instead (for testing). They will have stem suffix `_clean`."),
         default=False,
     )
 

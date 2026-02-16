@@ -78,9 +78,7 @@ def read_vcoord_from_ctrl_file(ctrl_file_path: str) -> np.ndarray:
         raise
 
 
-def get_pressure_levels_from_vcoord(
-    vcoord: np.ndarray, surface_pressure: Union[float, np.ndarray] = 101325.0
-) -> np.ndarray:
+def get_pressure_levels_from_vcoord(vcoord: np.ndarray, surface_pressure: Union[float, np.ndarray] = 101325.0) -> np.ndarray:
     """
     Calculate pressure levels from vcoord and surface pressure.
 
@@ -108,17 +106,13 @@ def get_pressure_levels_from_vcoord(
         # Scalar surface pressure
         pressure_levels = ak + bk * surface_pressure
         logger.info(f"Calculated pressure levels from surface pressure {surface_pressure:.2f} Pa")
-        logger.info(
-            f"Pressure range: {pressure_levels.min():.2f} to {pressure_levels.max():.2f} Pa"
-        )
+        logger.info(f"Pressure range: {pressure_levels.min():.2f} to {pressure_levels.max():.2f} Pa")
 
     else:
         # Spatially varying surface pressure
         surface_pressure = np.asarray(surface_pressure)
         if len(surface_pressure.shape) != 2:
-            raise ValueError(
-                f"surface_pressure array must be 2D, got shape {surface_pressure.shape}"
-            )
+            raise ValueError(f"surface_pressure array must be 2D, got shape {surface_pressure.shape}")
 
         # Broadcast for calculation: ak and bk are (nlev+1,), surface_pressure is (ny, nx)
         # Result will be (nlev+1, ny, nx)
@@ -127,12 +121,8 @@ def get_pressure_levels_from_vcoord(
         pressure_levels = ak_expanded + bk_expanded * surface_pressure[np.newaxis, :, :]
 
         logger.info("Calculated pressure levels from 2D surface pressure field")
-        logger.info(
-            f"Surface pressure range: {surface_pressure.min():.2f} to {surface_pressure.max():.2f} Pa"
-        )
-        logger.info(
-            f"Pressure levels range: {pressure_levels.min():.2f} to {pressure_levels.max():.2f} Pa"
-        )
+        logger.info(f"Surface pressure range: {surface_pressure.min():.2f} to {surface_pressure.max():.2f} Pa")
+        logger.info(f"Pressure levels range: {pressure_levels.min():.2f} to {pressure_levels.max():.2f} Pa")
 
     return pressure_levels
 
@@ -194,17 +184,11 @@ def read_cubed_sphere_coordinates(tile_file_prefix: str) -> dict:
                 if lon_var is None:
                     # List available variables for debugging
                     available_vars = list(ds.data_vars.keys()) + list(ds.coords.keys())
-                    raise KeyError(
-                        f"Longitude variable not found in tile {tile_num}. "
-                        f"Available variables: {available_vars}"
-                    )
+                    raise KeyError(f"Longitude variable not found in tile {tile_num}. Available variables: {available_vars}")
 
                 if lat_var is None:
                     available_vars = list(ds.data_vars.keys()) + list(ds.coords.keys())
-                    raise KeyError(
-                        f"Latitude variable not found in tile {tile_num}. "
-                        f"Available variables: {available_vars}"
-                    )
+                    raise KeyError(f"Latitude variable not found in tile {tile_num}. Available variables: {available_vars}")
 
                 # Extract coordinate arrays
                 geolon = ds[lon_var].values
@@ -212,19 +196,14 @@ def read_cubed_sphere_coordinates(tile_file_prefix: str) -> dict:
 
                 # Ensure 2D arrays
                 if len(geolon.shape) != 2:
-                    raise ValueError(
-                        f"Expected 2D longitude array for tile {tile_num}, got shape {geolon.shape}"
-                    )
+                    raise ValueError(f"Expected 2D longitude array for tile {tile_num}, got shape {geolon.shape}")
 
                 if len(geolat.shape) != 2:
-                    raise ValueError(
-                        f"Expected 2D latitude array for tile {tile_num}, got shape {geolat.shape}"
-                    )
+                    raise ValueError(f"Expected 2D latitude array for tile {tile_num}, got shape {geolat.shape}")
 
                 if geolon.shape != geolat.shape:
                     raise ValueError(
-                        f"Longitude and latitude arrays have different shapes "
-                        f"for tile {tile_num}: {geolon.shape} vs {geolat.shape}"
+                        f"Longitude and latitude arrays have different shapes for tile {tile_num}: {geolon.shape} vs {geolat.shape}"
                     )
 
                 ny, nx = geolon.shape
@@ -391,10 +370,7 @@ def add_3d_fields_to_fv3_tile(
 
             # Validate field dimensions
             if field_array.shape != (nlev, ny, nx):
-                raise ValueError(
-                    f"Field {field_name} has shape {field_array.shape}, "
-                    f"expected ({nlev}, {ny}, {nx})"
-                )
+                raise ValueError(f"Field {field_name} has shape {field_array.shape}, expected ({nlev}, {ny}, {nx})")
 
             # Determine coordinate names based on what's available in the dataset
             if "pfull" in ds.coords:
@@ -449,8 +425,7 @@ def add_3d_fields_to_fv3_tile(
             ds_out[field_name] = field_da
 
             logger.info(
-                f"Added {field_name}: shape {field_array.shape}, "
-                f"min={np.min(field_array):.2e}, max={np.max(field_array):.2e}"
+                f"Added {field_name}: shape {field_array.shape}, min={np.min(field_array):.2e}, max={np.max(field_array):.2e}"
             )
 
     # Determine output path

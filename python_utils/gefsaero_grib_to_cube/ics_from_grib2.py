@@ -41,9 +41,7 @@ def generate_gcafs_ics(grib_file, fv3_prefix, output_dir=None):
     bool
         True if successful, False otherwise
     """
-    print(
-        f"Starting GCAFS initial conditions generation for GRIB file: {grib_file} and FV3 prefix: {fv3_prefix}"
-    )
+    print(f"Starting GCAFS initial conditions generation for GRIB file: {grib_file} and FV3 prefix: {fv3_prefix}")
     # ...existing code...
 
     # Validate input files exist
@@ -78,9 +76,7 @@ def generate_gcafs_ics(grib_file, fv3_prefix, output_dir=None):
     if aerosol_data is None:
         print("ERROR: Failed to read aerosol species data from GRIB2 file.")
         return False
-    print(
-        f"Successfully extracted aerosol species data: {', '.join([k for k in aerosol_data.keys() if not k.startswith('_')])}"
-    )
+    print(f"Successfully extracted aerosol species data: {', '.join([k for k in aerosol_data.keys() if not k.startswith('_')])}")
 
     grid_info_grib = aerosol_data["_grid_info"]
 
@@ -186,9 +182,7 @@ def generate_gcafs_ics(grib_file, fv3_prefix, output_dir=None):
 
     # Perform complete interpolation: vertical and horizontal in one step
     print(f"Interpolating aerosol species data to FV3 cubed-sphere grid for GRIB file: {grib_file}")
-    print(
-        f"  Source grid: {len(source_lat)} x {len(source_lon)} x {len(pressure_grib)} (lat x lon x lev)"
-    )
+    print(f"  Source grid: {len(source_lat)} x {len(source_lon)} x {len(pressure_grib)} (lat x lon x lev)")
     print(
         f"  Target grid: 6 tiles x {target_geolon.shape[1]} x {target_geolon.shape[2]} x {len(pressure_fv3)} (tile x ny x nx x lev)"
     )
@@ -207,9 +201,7 @@ def generate_gcafs_ics(grib_file, fv3_prefix, output_dir=None):
         )
 
         print(f"Complete interpolation finished successfully for prefix: {fv3_prefix}")
-        print(
-            f"Interpolated data contains {len([k for k in interpolated_aerosols.keys() if not k.startswith('_')])} species"
-        )
+        print(f"Interpolated data contains {len([k for k in interpolated_aerosols.keys() if not k.startswith('_')])} species")
 
         # Print summary of interpolated data
         for species in [k for k in interpolated_aerosols.keys() if not k.startswith("_")]:
@@ -260,9 +252,7 @@ def generate_gcafs_ics(grib_file, fv3_prefix, output_dir=None):
             for species in species_list:
                 cubed_data = interpolated_aerosols[species]  # Shape: (6, nlev, ny, nx)
                 output_species = species_map[species] if species in species_map else species
-                tile_specific_data[output_species] = cubed_data[
-                    tile - 1, :, :, :
-                ]  # Shape: (nlev, ny, nx)
+                tile_specific_data[output_species] = cubed_data[tile - 1, :, :, :]  # Shape: (nlev, ny, nx)
 
             try:
                 print(f"  Writing aerosol fields to tile {tile}: {os.path.basename(tile_file)}")
@@ -273,17 +263,11 @@ def generate_gcafs_ics(grib_file, fv3_prefix, output_dir=None):
                     tile_specific_data,
                     metadata,
                     backup_original=True,
-                    output_path=(
-                        os.path.join(output_dir, os.path.basename(tile_file))
-                        if output_dir != os.getcwd()
-                        else None
-                    ),
+                    output_path=(os.path.join(output_dir, os.path.basename(tile_file)) if output_dir != os.getcwd() else None),
                 )
 
                 output_files.append(output_file)
-                print(
-                    f"    Successfully wrote {len(species_list)} species to: {os.path.basename(output_file)}"
-                )
+                print(f"    Successfully wrote {len(species_list)} species to: {os.path.basename(output_file)}")
 
             except Exception as e:
                 print(f"    ERROR: Failed to write aerosol fields to tile {tile}: {e}")
@@ -293,9 +277,7 @@ def generate_gcafs_ics(grib_file, fv3_prefix, output_dir=None):
                 return False
 
         print(f"Aerosol fields successfully written to {len(output_files)} FV3 tile files.")
-        print(
-            f"Output files created in: {output_dir if output_dir != os.getcwd() else 'current directory'}"
-        )
+        print(f"Output files created in: {output_dir if output_dir != os.getcwd() else 'current directory'}")
 
         # Print summary of what was written
         print(f"Summary for prefix {fv3_prefix}:")
@@ -316,9 +298,7 @@ def generate_gcafs_ics(grib_file, fv3_prefix, output_dir=None):
 
 def main():
     """Main function to parse arguments and run the GCAFS IC generation."""
-    parser = argparse.ArgumentParser(
-        description="Generate GCAFS initial conditions from GRIB2 and FV3 files"
-    )
+    parser = argparse.ArgumentParser(description="Generate GCAFS initial conditions from GRIB2 and FV3 files")
 
     parser.add_argument(
         "--grib-file",
@@ -344,9 +324,7 @@ def main():
     args = parser.parse_args()
 
     # Run the IC generation
-    success = generate_gcafs_ics(
-        grib_file=args.grib_file, fv3_prefix=args.fv3_prefix, output_dir=args.output_dir
-    )
+    success = generate_gcafs_ics(grib_file=args.grib_file, fv3_prefix=args.fv3_prefix, output_dir=args.output_dir)
 
     if success:
         print("GCAFS initial conditions generation completed successfully!")

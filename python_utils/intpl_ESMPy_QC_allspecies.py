@@ -87,9 +87,7 @@ def process_regrid(
     # Prepare coordinates for xregrid
     # xregrid looks for lat/lon coordinates. We use the grid center coordinates.
     ds_grid_in = ds_grid_in.assign_coords(lat=ds_grid_in["grid_latt"], lon=ds_grid_in["grid_lont"])
-    ds_grid_out = ds_grid_out.assign_coords(
-        lat=ds_grid_out["grid_latt"], lon=ds_grid_out["grid_lont"]
-    )
+    ds_grid_out = ds_grid_out.assign_coords(lat=ds_grid_out["grid_latt"], lon=ds_grid_out["grid_lont"])
 
     # Create regridder
     # Note: weights can be passed to Regridder to reuse existing ESMF weights

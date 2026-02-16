@@ -13,9 +13,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 
-def read_aerosol_species_from_grib2(
-    grib_file_path: str, level_range: Optional[Tuple[int, int]] = None
-) -> Dict[str, np.ndarray]:
+def read_aerosol_species_from_grib2(grib_file_path: str, level_range: Optional[Tuple[int, int]] = None) -> Dict[str, np.ndarray]:
     """
     Read all aerosol species from a GRIB2 file using grib2io.
 
@@ -208,17 +206,11 @@ def read_aerosol_species_from_grib2(
             logger.warning("No valid levels found, using default level 1")
             available_levels = [1]
 
-        logger.info(
-            f"Available levels: {len(available_levels)} levels from {min(available_levels)} to {max(available_levels)}"
-        )
+        logger.info(f"Available levels: {len(available_levels)} levels from {min(available_levels)} to {max(available_levels)}")
 
         if level_range:
-            levels_to_read = [
-                level for level in available_levels if level_range[0] <= level <= level_range[1]
-            ]
-            logger.info(
-                f"Reading levels {level_range[0]} to {level_range[1]}: {len(levels_to_read)} levels"
-            )
+            levels_to_read = [level for level in available_levels if level_range[0] <= level <= level_range[1]]
+            logger.info(f"Reading levels {level_range[0]} to {level_range[1]}: {len(levels_to_read)} levels")
         else:
             levels_to_read = available_levels
             logger.info(f"Reading all {len(levels_to_read)} levels")
@@ -226,9 +218,7 @@ def read_aerosol_species_from_grib2(
         # Initialize data arrays for each aerosol species
         for species_name in aerosol_species_info.keys():
             # Shape: (level, lat, lon) - assuming single time for now
-            aerosol_data[species_name] = np.zeros(
-                (len(levels_to_read), grid_info["nj"], grid_info["ni"])
-            )
+            aerosol_data[species_name] = np.zeros((len(levels_to_read), grid_info["nj"], grid_info["ni"]))
 
         # Read data for each aerosol species and level
         species_found = {species: False for species in aerosol_species_info.keys()}
@@ -268,9 +258,7 @@ def read_aerosol_species_from_grib2(
 
             # Debug: print message info for first few messages
             if len(grb) <= 20:  # Only for small files or first few messages
-                logger.info(
-                    f"Message at level {level}: param={param_name}, fullName={getattr(msg, 'fullName', 'N/A')}"
-                )
+                logger.info(f"Message at level {level}: param={param_name}, fullName={getattr(msg, 'fullName', 'N/A')}")
 
             # Try to match this message to one of our aerosol species
             for species_name, species_info in aerosol_species_info.items():
@@ -306,9 +294,7 @@ def read_aerosol_species_from_grib2(
                                 )
                                 break
                     except Exception as e:
-                        logger.warning(
-                            f"Error reading data for {species_name} at level {level}: {e}"
-                        )
+                        logger.warning(f"Error reading data for {species_name} at level {level}: {e}")
                         continue
 
         # Log which species were found
@@ -317,9 +303,7 @@ def read_aerosol_species_from_grib2(
 
         logger.info(f"Successfully read {len(found_species)} aerosol species: {found_species}")
         if missing_species:
-            logger.warning(
-                f"Could not find data for {len(missing_species)} species: {missing_species}"
-            )
+            logger.warning(f"Could not find data for {len(missing_species)} species: {missing_species}")
 
         # Add grid information to the returned data
         aerosol_data["_grid_info"] = grid_info
@@ -337,9 +321,7 @@ def read_aerosol_species_from_grib2(
         raise
 
 
-def get_aerosol_species_by_parameter(
-    grib_file_path: str, parameter_name: str = "PMTF", level: int = 1
-) -> Dict[str, np.ndarray]:
+def get_aerosol_species_by_parameter(grib_file_path: str, parameter_name: str = "PMTF", level: int = 1) -> Dict[str, np.ndarray]:
     """
     Read specific aerosol parameter (PMTF or PMTC) from GRIB2 file.
 
@@ -361,12 +343,7 @@ def get_aerosol_species_by_parameter(
         matching_data = {}
 
         for i, msg in enumerate(grb):
-            if (
-                hasattr(msg, "shortName")
-                and msg.shortName == parameter_name
-                and hasattr(msg, "level")
-                and msg.level == level
-            ):
+            if hasattr(msg, "shortName") and msg.shortName == parameter_name and hasattr(msg, "level") and msg.level == level:
                 # Read the data
                 data_values = msg.data()
                 if data_values is not None:

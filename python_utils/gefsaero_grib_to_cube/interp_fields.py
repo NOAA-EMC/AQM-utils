@@ -2,9 +2,7 @@ import numpy as np
 from scipy.interpolate import RegularGridInterpolator, interp1d
 
 
-def interpolate_aerosols_vertically(
-    aerosol_data, pressure_source, pressure_target, extrapolate_method="constant"
-):
+def interpolate_aerosols_vertically(aerosol_data, pressure_source, pressure_target, extrapolate_method="constant"):
     """
     Interpolate aerosol species data vertically from source pressure levels to target pressure levels
     using logarithmic pressure coordinates.
@@ -35,12 +33,8 @@ def interpolate_aerosols_vertically(
         "Starting vertical interpolation using logarithmic pressure coordinates... "
         f"source shape: {pressure_source.shape}, target shape: {pressure_target.shape}"
     )
-    print(
-        f"Source pressure levels: {len(pressure_source)} ({pressure_source.min():.1f} to {pressure_source.max():.1f} Pa)"
-    )
-    print(
-        f"Target pressure levels: {len(pressure_target)} ({pressure_target.min():.1f} to {pressure_target.max():.1f} Pa)"
-    )
+    print(f"Source pressure levels: {len(pressure_source)} ({pressure_source.min():.1f} to {pressure_source.max():.1f} Pa)")
+    print(f"Target pressure levels: {len(pressure_target)} ({pressure_target.min():.1f} to {pressure_target.max():.1f} Pa)")
 
     # Validate inputs
     if len(pressure_source.shape) != 1:
@@ -102,18 +96,14 @@ def interpolate_aerosols_vertically(
             )
             continue
 
-        print(
-            f"  Interpolating {species}: {data.shape} -> ({len(pressure_target)}, {nlat}, {nlon})"
-        )
+        print(f"  Interpolating {species}: {data.shape} -> ({len(pressure_target)}, {nlat}, {nlon})")
 
         # Sort the data according to the sorted source pressures
         data_sorted = data[source_sort_idx, :, :]
 
         # Check that log-pressure is monotonic after sorting
         if not np.all(log_pressure_source_sorted[:-1] >= log_pressure_source_sorted[1:]):
-            print(
-                f"  WARNING: Log-pressure not monotonic for {species} - interpolation may be unreliable"
-            )
+            print(f"  WARNING: Log-pressure not monotonic for {species} - interpolation may be unreliable")
 
         # Initialize output array (in sorted target pressure order)
         nlev_target = len(pressure_target)
@@ -166,14 +156,10 @@ def interpolate_aerosols_vertically(
                     interpolated_species_sorted[:, i, j] = f(log_pressure_target_sorted)
 
                     # Ensure non-negative values (aerosols should be >= 0)
-                    interpolated_species_sorted[:, i, j] = np.maximum(
-                        interpolated_species_sorted[:, i, j], 0.0
-                    )
+                    interpolated_species_sorted[:, i, j] = np.maximum(interpolated_species_sorted[:, i, j], 0.0)
 
                 except Exception as e:
-                    print(
-                        f"    WARNING: Interpolation failed at grid point ({i}, {j}) for {species}: {e}"
-                    )
+                    print(f"    WARNING: Interpolation failed at grid point ({i}, {j}) for {species}: {e}")
                     interpolated_species_sorted[:, i, j] = 0.0
 
         # Restore original target pressure order
@@ -186,15 +172,9 @@ def interpolate_aerosols_vertically(
         orig_max = np.max(data)
         orig_mean = np.mean(data[data > 0]) if np.any(data > 0) else 0.0
         interp_max = np.max(interpolated_species)
-        interp_mean = (
-            np.mean(interpolated_species[interpolated_species > 0])
-            if np.any(interpolated_species > 0)
-            else 0.0
-        )
+        interp_mean = np.mean(interpolated_species[interpolated_species > 0]) if np.any(interpolated_species > 0) else 0.0
 
-        print(
-            f"    {species}: max {orig_max:.2e} -> {interp_max:.2e}, mean {orig_mean:.2e} -> {interp_mean:.2e}"
-        )
+        print(f"    {species}: max {orig_max:.2e} -> {interp_max:.2e}, mean {orig_mean:.2e} -> {interp_mean:.2e}")
 
         # Check for extrapolation
         log_p_min = log_pressure_source_sorted.min()
@@ -203,9 +183,7 @@ def interpolate_aerosols_vertically(
         n_extrap_high = np.sum(log_pressure_target_sorted > log_p_max)
 
         if n_extrap_low > 0 or n_extrap_high > 0:
-            print(
-                f"    {species}: extrapolating {n_extrap_low} levels below and {n_extrap_high} levels above source range"
-            )
+            print(f"    {species}: extrapolating {n_extrap_low} levels below and {n_extrap_high} levels above source range")
 
     print(f"Vertical interpolation completed for {len(species_keys)} species")
     return interpolated_data
@@ -279,9 +257,7 @@ def interpolate_aerosols_horizontally(
 
     print(f"Source longitude range: {source_lon.min():.1f} to {source_lon.max():.1f}°")
     print(f"Source latitude range: {source_lat.min():.1f} to {source_lat.max():.1f}°")
-    print(
-        f"Target longitude range: {target_geolon_adj.min():.1f} to {target_geolon_adj.max():.1f}°"
-    )
+    print(f"Target longitude range: {target_geolon_adj.min():.1f} to {target_geolon_adj.max():.1f}°")
     print(f"Target latitude range: {target_geolat.min():.1f} to {target_geolat.max():.1f}°")
 
     # Initialize output dictionary
@@ -312,9 +288,7 @@ def interpolate_aerosols_horizontally(
 
         if nlat_source != len(source_lat) or nlon_source != len(source_lon):
             print(f"WARNING: Skipping {species} - grid size mismatch")
-            print(
-                f"  Data shape: {data.shape}, expected: ({nlev}, {len(source_lat)}, {len(source_lon)})"
-            )
+            print(f"  Data shape: {data.shape}, expected: ({nlev}, {len(source_lat)}, {len(source_lon)})")
             continue
 
         print(f"  Interpolating {species}: {data.shape} -> (6, {nlev}, {ny_target}, {nx_target})")
@@ -355,19 +329,13 @@ def interpolate_aerosols_horizontally(
                     interpolated_values = interpolator(target_points)
 
                     # Reshape back to tile grid
-                    interpolated_species[tile, lev, :, :] = interpolated_values.reshape(
-                        ny_target, nx_target
-                    )
+                    interpolated_species[tile, lev, :, :] = interpolated_values.reshape(ny_target, nx_target)
 
                     # Ensure non-negative values
-                    interpolated_species[tile, lev, :, :] = np.maximum(
-                        interpolated_species[tile, lev, :, :], 0.0
-                    )
+                    interpolated_species[tile, lev, :, :] = np.maximum(interpolated_species[tile, lev, :, :], 0.0)
 
             except Exception as e:
-                print(
-                    f"    WARNING: Horizontal interpolation failed for {species} level {lev}: {e}"
-                )
+                print(f"    WARNING: Horizontal interpolation failed for {species} level {lev}: {e}")
                 # Leave this level as zeros
                 continue
 
@@ -378,15 +346,9 @@ def interpolate_aerosols_horizontally(
         orig_max = np.max(data)
         orig_mean = np.mean(data[data > 0]) if np.any(data > 0) else 0.0
         interp_max = np.max(interpolated_species)
-        interp_mean = (
-            np.mean(interpolated_species[interpolated_species > 0])
-            if np.any(interpolated_species > 0)
-            else 0.0
-        )
+        interp_mean = np.mean(interpolated_species[interpolated_species > 0]) if np.any(interpolated_species > 0) else 0.0
 
-        print(
-            f"    {species}: max {orig_max:.2e} -> {interp_max:.2e}, mean {orig_mean:.2e} -> {interp_mean:.2e}"
-        )
+        print(f"    {species}: max {orig_max:.2e} -> {interp_max:.2e}, mean {orig_mean:.2e} -> {interp_mean:.2e}")
 
         # Check coverage for each tile
         for tile in range(ntiles):
@@ -444,9 +406,7 @@ def interpolate_aerosols_to_cubed_sphere(
     """
 
     print(f"Starting complete aerosol interpolation pipeline... [{aerosol_data.keys()}]")
-    print(
-        f"Step 1: Vertical interpolation (log-pressure coordinates) using method: {vertical_method}"
-    )
+    print(f"Step 1: Vertical interpolation (log-pressure coordinates) using method: {vertical_method}")
 
     # Step 1: Vertical interpolation
     vertically_interpolated = interpolate_aerosols_vertically(
@@ -456,9 +416,7 @@ def interpolate_aerosols_to_cubed_sphere(
         extrapolate_method=vertical_method,
     )
 
-    print(
-        f"Step 2: Horizontal interpolation to cubed-sphere tiles [{target_geolon.shape}, {target_geolat.shape}]"
-    )
+    print(f"Step 2: Horizontal interpolation to cubed-sphere tiles [{target_geolon.shape}, {target_geolat.shape}]")
 
     # Step 2: Horizontal interpolation
     fully_interpolated = interpolate_aerosols_horizontally(
