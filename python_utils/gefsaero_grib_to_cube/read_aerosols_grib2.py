@@ -344,7 +344,6 @@ def get_aerosol_species_by_parameter(grib_file_path: str, parameter_name: str = 
 
         for i, msg in enumerate(grb):
             if hasattr(msg, "shortName") and msg.shortName == parameter_name and hasattr(msg, "level") and msg.level == level:
-
                 # Read the data
                 data_values = msg.data()
                 if data_values is not None:

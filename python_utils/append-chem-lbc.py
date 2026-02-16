@@ -86,7 +86,7 @@ def parse_args(argv=None):
     parser.add_argument(
         "--rm",
         action="store_true",
-        help=("Create new files with chem vars removed instead (for testing). " "They will have stem suffix `_clean`."),
+        help=("Create new files with chem vars removed instead (for testing). They will have stem suffix `_clean`."),
         default=False,
     )
 

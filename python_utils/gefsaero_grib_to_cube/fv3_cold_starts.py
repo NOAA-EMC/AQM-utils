@@ -184,11 +184,11 @@ def read_cubed_sphere_coordinates(tile_file_prefix: str) -> dict:
                 if lon_var is None:
                     # List available variables for debugging
                     available_vars = list(ds.data_vars.keys()) + list(ds.coords.keys())
-                    raise KeyError(f"Longitude variable not found in tile {tile_num}. " f"Available variables: {available_vars}")
+                    raise KeyError(f"Longitude variable not found in tile {tile_num}. Available variables: {available_vars}")
 
                 if lat_var is None:
                     available_vars = list(ds.data_vars.keys()) + list(ds.coords.keys())
-                    raise KeyError(f"Latitude variable not found in tile {tile_num}. " f"Available variables: {available_vars}")
+                    raise KeyError(f"Latitude variable not found in tile {tile_num}. Available variables: {available_vars}")
 
                 # Extract coordinate arrays
                 geolon = ds[lon_var].values
@@ -196,15 +196,14 @@ def read_cubed_sphere_coordinates(tile_file_prefix: str) -> dict:
 
                 # Ensure 2D arrays
                 if len(geolon.shape) != 2:
-                    raise ValueError(f"Expected 2D longitude array for tile {tile_num}, " f"got shape {geolon.shape}")
+                    raise ValueError(f"Expected 2D longitude array for tile {tile_num}, got shape {geolon.shape}")
 
                 if len(geolat.shape) != 2:
-                    raise ValueError(f"Expected 2D latitude array for tile {tile_num}, " f"got shape {geolat.shape}")
+                    raise ValueError(f"Expected 2D latitude array for tile {tile_num}, got shape {geolat.shape}")
 
                 if geolon.shape != geolat.shape:
                     raise ValueError(
-                        f"Longitude and latitude arrays have different shapes "
-                        f"for tile {tile_num}: {geolon.shape} vs {geolat.shape}"
+                        f"Longitude and latitude arrays have different shapes for tile {tile_num}: {geolon.shape} vs {geolat.shape}"
                     )
 
                 ny, nx = geolon.shape
@@ -371,7 +370,7 @@ def add_3d_fields_to_fv3_tile(
 
             # Validate field dimensions
             if field_array.shape != (nlev, ny, nx):
-                raise ValueError(f"Field {field_name} has shape {field_array.shape}, " f"expected ({nlev}, {ny}, {nx})")
+                raise ValueError(f"Field {field_name} has shape {field_array.shape}, expected ({nlev}, {ny}, {nx})")
 
             # Determine coordinate names based on what's available in the dataset
             if "pfull" in ds.coords:
@@ -426,7 +425,7 @@ def add_3d_fields_to_fv3_tile(
             ds_out[field_name] = field_da
 
             logger.info(
-                f"Added {field_name}: shape {field_array.shape}, " f"min={np.min(field_array):.2e}, max={np.max(field_array):.2e}"
+                f"Added {field_name}: shape {field_array.shape}, min={np.min(field_array):.2e}, max={np.max(field_array):.2e}"
             )
 
     # Determine output path

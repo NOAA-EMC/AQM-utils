@@ -217,14 +217,7 @@ class SectorFiles:
         self.n_fps = len(self.fps)
 
     def __repr__(self):
-        return (
-            f"{type(self).__name__}(\n"
-            f"  sector={self.sector!r},\n"
-            f"  dir_={self.dir_},\n"
-            f"  fps={{...}},\n"
-            f"  n_fps={self.n_fps},\n"
-            ")"
-        )
+        return f"{type(self).__name__}(\n  sector={self.sector!r},\n  dir_={self.dir_},\n  fps={{...}},\n  n_fps={self.n_fps},\n)"
 
     def find_closest_fp(self, target):
         """Return (matched Date, associated file path).
@@ -283,8 +276,7 @@ class SectorFiles:
                     # but ptnonipm (e.g.) has Thanksgiving and the two days after
                     s_dates = "\n".join(f"- {d}" for d in dates_m)
                     log.warning(
-                        "for holiday without specific file, "
-                        f"dropping the last of these dates in order to have 4 only:\n{s_dates}"
+                        f"for holiday without specific file, dropping the last of these dates in order to have 4 only:\n{s_dates}"
                     )
                     dates_m = dates_m[:4]
                     fps_m = fps_m[:4]
@@ -547,14 +539,12 @@ def main(
                 if vn not in ds_out.variables:
                     v_out = ds_out.createVariable(vn, "S1", (POINT_DIM_NAME, "nchar"))
                     v_out.long_name = "Group ID"
-                    v_out.description = (
-                        "Sector time group (daily, 4-per-month, or 4-per-month + holidays) " "and reference year date"
-                    )
+                    v_out.description = "Sector time group (daily, 4-per-month, or 4-per-month + holidays) and reference year date"
                     v_out[:] = ""
                 else:
                     v_out = ds_out.variables[vn]
                 x = np.full((100,), "", "S1")
-                x[: len(sg_id)] = [np.string_(c) for c in sg_id]
+                x[: len(sg_id)] = [np.bytes_(c) for c in sg_id]
                 v_out[point_slice, :] = x
 
             if not stack_groups_only:
@@ -631,7 +621,7 @@ def parse_args(args=None):
         "--nstep",
         type=int,
         default=NSTEP_DEFAULT,
-        help=("Desired number of time steps for the output file (including start). " f"(default: {NSTEP_DEFAULT})"),
+        help=(f"Desired number of time steps for the output file (including start). (default: {NSTEP_DEFAULT})"),
     )
     parser.add_argument(
         "-i",
@@ -639,8 +629,7 @@ def parse_args(args=None):
         type=Path,
         default=INPUT_DIR_DEFAULT,
         help=(
-            "Directory where the compiled sector group files are located. "
-            f"(default: {INPUT_DIR_DEFAULT.as_posix()} (GMU Hopper))"
+            f"Directory where the compiled sector group files are located. (default: {INPUT_DIR_DEFAULT.as_posix()} (GMU Hopper))"
         ),
     )
     parser.add_argument(

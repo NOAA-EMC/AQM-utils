@@ -11,7 +11,6 @@ import xarray as xr
 
 
 def add_aqm_tracers_ics(fv_tracer_file, wrk_ic_file):
-
     # Previous day aqm tracer file
     try:
         fv_tracer = xr.open_dataset(fv_tracer_file)

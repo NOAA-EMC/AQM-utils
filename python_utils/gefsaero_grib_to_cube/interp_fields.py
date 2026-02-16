@@ -356,7 +356,7 @@ def interpolate_aerosols_horizontally(
             n_nonzero = np.sum(tile_data > 0)
             total_points = tile_data.size
             coverage = n_nonzero / total_points * 100
-            print(f"      Tile {tile+1}: {coverage:.1f}% non-zero points")
+            print(f"      Tile {tile + 1}: {coverage:.1f}% non-zero points")
 
     print(f"Horizontal interpolation completed for {len(species_keys)} species")
     return interpolated_data
