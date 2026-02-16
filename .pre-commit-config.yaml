@@ -15,4 +15,9 @@ repos:
         args: [ --fix ]
       - id: ruff-format
 
-exclude: ^\.venv/
+exclude: |
+  (?x)^(
+    \.venv/|
+    extern/|
+    python_utils/gdas-cmaqprep/
+  )
