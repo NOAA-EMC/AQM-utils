@@ -293,13 +293,13 @@
       ipdstmpl=0
       ipdsnum=8             ! Product Definition Template Number (Table 4.0) (0: Analysis or forecast at a horizontal level or in a horizontal layer at a point in time)
       ipdstmpllen=29        ! pdt template length
-      ipdstmpl(3)=2         ! Type of generating process (Table 4.3) (0:ana, 1:ic, 2:fcst)
+      ipdstmpl(3)=3         ! Type of generating process (Table 4.3) (0:ana, 1:ic, 2:fcst, 3:bias-cor)
       ipdstmpl(4)=0         ! Background generating process identifier
-      ipdstmpl(5)=211        ! Analysis or forecast generating process identified (ON388TableA)
+      ipdstmpl(5)=211       ! Analysis or forecast generating process identified (ON388TableA)
       ipdstmpl(6)=0         ! Hours of observational data cutoff after reference time
       ipdstmpl(7)=0         ! Minutes of observational data cutoff after reference time
       ipdstmpl(8)=1         ! Indicator of unit of time range (Table 4.4) (0:minute, 1:hour 2:day)
-      ipdstmpl(9)=nt-1         ! Forecast time in units defined by ipdstmpl(8)
+      ipdstmpl(9)=nt-1      ! Forecast time in units defined by ipdstmpl(8)
       ipdstmpl(10)=104      ! Type of first fixed surface (see Code table 4.5) (100:isobaric leve)
       ipdstmpl(11)=4        ! Scale factor of first fixed surface
       ipdstmpl(12)=10000    ! Scaled value of first fixed surface
