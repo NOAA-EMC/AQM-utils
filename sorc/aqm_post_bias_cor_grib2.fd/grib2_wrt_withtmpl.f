@@ -114,7 +114,7 @@
       ipdstmpllen=15            ! pdt template length
       ipdstmpl(1)=0         ! catogory
       ipdstmpl(2)=0         ! parameter
-      ipdstmpl(3)=2         ! Type of generating process (Table 4.3) (0:ana, 1:ic, 2:fcst)
+      ipdstmpl(3)=3         ! Type of generating process (Table 4.3) (0:ana, 1:ic, 2:fcst, 3:bias-cor)
       ipdstmpl(4)=0         ! Background generating process identifier
       ipdstmpl(5)=81        ! Analysis or forecast generating process identified (ON388TableA)
       ipdstmpl(6)=0         ! Hours of observational data cutoff after reference time
